@@ -1,4 +1,4 @@
-const axios = require('axios')
+const axios = require("axios");
 
 const revisar = async (url) => {
   try {
@@ -7,9 +7,13 @@ const revisar = async (url) => {
       return { url: url, online: true, status: res.status };
     }
   } catch (error) {
-    return { url: url, online: false, status: error.response ? error.response.status : 'Error de conexion' };
+    console.log('Error:', error.message);
+    return {
+      url: url,
+      online: false,
+      status: error.response ? error.response.status : "Error de conexion",
+    };
   }
 };
-
 
 module.exports = { revisar };
