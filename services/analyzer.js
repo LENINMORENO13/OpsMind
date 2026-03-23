@@ -13,24 +13,27 @@ const interpreter = (report) => {
 function detalles(detalle, url) {
   const codes = {
     200: {
-      message: `OK - ${url} operativo`,
-      details: `Respuesta exitosa (200). El servicio respondió correctamente.`,
+      message: `OK - Sitio operativo`,
+      details: `Respuesta exitosa. El servicio respondió correctamente.`,
     },
     404: {
-      message: `Recurso no encontrado - ${url}`,
+      message: `Recurso no encontrado`,
       details: `Error 404: No se pudo encontrar el recurso solicitado. Verifica la URL o el endpoint.`,
     },
     500: {
-      message: `Error interno del servidor - ${url}`,
+      message: `Error interno del servidor`,
       details: `Error 500: El servidor encontró una condición inesperada. Revisar logs del backend.`,
     },
   };
-  return (
-    codes[Number(detalle)] || {
-      message: `Código no manejado - ${url}`,
-      details: `Se recibió un código de estado no contemplado: ${detalle}.`,
-    }
-  );
+
+  const info = codes[Number(detalle)] || {
+    message: `Código desconocido`,
+    details: `Se recibió un código de estado no contemplado.`,
+  };
+  return {
+    message: `${info.message} | URL:${url}`,
+    details: `${info.details} (Status): ${detalle}`,
+  };
 }
 
 module.exports = { interpreter };

@@ -1,0 +1,8 @@
+{
+  "urls": [
+    "https://www.google.com",
+    "https://github.com",
+    "https://pelota-libre.net/"
+  ],
+  "intervalo": 60000
+}
