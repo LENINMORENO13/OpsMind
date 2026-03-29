@@ -1,8 +1,10 @@
 {
   "urls": [
     "https://www.google.com",
+    "https://www.facebook.com",
     "https://github.com",
-    "https://pelota-libre.net/"
+    "https://dentalmanager.alwaysdata.net/"
   ],
   "intervalo": 60000
 }
+

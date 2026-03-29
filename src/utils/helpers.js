@@ -1,6 +1,6 @@
-const obtenerFechaFormateada = () => {
+const getFormattedDate = () => {
   return new Date().toLocaleString("ec-EC", { timeZone: "America/Guayaquil" });
 };
 
-module.exports = { obtenerFechaFormateada };
+module.exports = { getFormattedDate };
 
