@@ -1,11 +1,10 @@
-# 🛡️ Service Guardian AI
+# 🛡️ OpsMind
 
 Sistema Inteligente de Monitoreo y Análisis para Microservicios
 
-Service Guardian AI no es solo un monitor: es una plataforma modular que combina recolección de datos, análisis de tendencias, persistencia y alertas automáticas, con visión futura de inteligencia predictiva mediante IA.
+OpsMind no es solo un monitor: es una plataforma modular que combina recolección de datos, análisis de tendencias, persistencia y alertas automáticas, con visión futura de inteligencia predictiva mediante IA.
 
 ---
-## Demuestra habilidades de arquitectura, automatización y análisis inteligente para entornos empresariales modernos.
 
 ## Qué hace
 
@@ -30,9 +29,6 @@ Service Guardian AI no es solo un monitor: es una plataforma modular que combina
 
 ---
 
-## Destaca tu capacidad de diseñar sistemas modulares y escalables.
-
----
 
 ## Estructura del Proyecto
 
