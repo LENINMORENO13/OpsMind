@@ -1,0 +1,73 @@
+<%- include('header') %>
+
+<div class="row">
+    <div class="col">
+        <h2>Mis Monitores</h2>
+        <table class="table table-striped mt-3 bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>URL</th>
+                    <th>Estado</th>
+                    <th>Última Revisión</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-monitores">
+                <% monitors.forEach(monitor => { %>
+                <tr>
+                    <td><%= monitor.name %></td>
+                    <td><a href="<%= monitor.url %>" target="_blank"><%= monitor.url %></a></td>
+                    <td>
+                        <span class="badge <%= monitor.isActive ? 'bg-success' : 'bg-danger' %>">
+                            <%= monitor.isActive ? 'Activo' : 'Inactivo' %>
+                        </span>
+                    </td>
+                    <td><%= monitor.createdAt.toLocaleDateString() %></td>
+                    <form action="/monitors/<%= monitor.id %>?_method=DELETE" method="POST">
+                    <td><button>Delete</button></td>
+                    </form>
+                    <form action="/monitors/<%= monitor.id %>/edit"POST">
+                    <td><button>Update</button></td>
+                    </form>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const updateTable = async () => {
+    try {
+        const response = await fetch('/monitors/api/all');
+        const data = await response.json();
+        const tbody = document.querySelector('#tabla-monitores');
+
+        // 1. Limpiar la tabla antes de meter los nuevos datos
+        tbody.innerHTML = '';
+
+        // 2. Recorrer los datos
+        data.forEach(monitor => {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+            <td>${monitor.name}</td>
+            <td>${monitor.url}</td>
+            <td>
+                <span class="badge ${monitor.state === 'STABLE' ? 'bg-success' : 'bg-warning'}">
+                ${monitor.state || 'Checking...'}
+                </span>
+            </td>
+            <td>${new Date().toLocaleTimeString()}</td>
+            `;  
+            tbody.appendChild(newRow);
+        });
+
+    } catch (error) {
+        console.error("Error al actualizar:", error);
+    }
+}
+    setInterval(updateTable, 60000)
+</script>
+
+<%- include('footer') %>

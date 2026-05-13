@@ -1,37 +1,11 @@
-const analyzeStatus = (report, history) => {
-  const { status, online, url } = report;
+export const analyzeStatus = (report) => {
 
-  const previousStatus =
-    history.length > 1 ? history[history.length - 2] : null;
+  const { status, url, state, trend } = report;
 
-  if (!online) {
-    return {
-      message: `No se puede acceder al sitio`,
-      details: `No pudimos conectarnos a ${url}. Revisa tu conexión a internet e inténtalo nuevamente.`,
-    };
-  }
-
-  let trend = "";
-  let priority = "Pending";
-
-  if (status === 200 && previousStatus === 0) {
-    trend = "Recovered";
-    priority = "Medium";
-  } else if (status === 0 && previousStatus === 200) {
-    trend = "Drop detected";
-    priority = "High";
-  } else if (status === 200 && previousStatus === 200) {
-    trend = "Stable";
-    priority = "Low";
-  } else if (status === 0 && previousStatus === 0) {
-    trend = "Offline";
-    priority = "Critical";
-  }
-
-  return formatResponse(status, url, trend, priority);
+  return formatResponse(status, url, trend, state);
 };
 
-function formatResponse(status, url, trend, priority) {
+function formatResponse(status, url, trend, state) {
   const codes = {
     200: {
       message: `OK - Sitio operativo`,
@@ -39,25 +13,29 @@ function formatResponse(status, url, trend, priority) {
     },
     404: {
       message: `Recurso no encontrado`,
-      details: `Error 404: No se pudo encontrar el recurso solicitado. Verifica la URL o el endpoint.`,
+      details: `Error 404: No se pudo encontrar el recurso solicitado.`,
     },
     500: {
       message: `Error interno del servidor`,
-      details: `Error 500: El servidor encontró una condición inesperada. Revisar logs del backend.`,
+      details: `Error 500: El servidor de destino falló.`,
     },
+    0: {
+      message: `Sin respuesta`,
+      details: `El sitio no respondió o hay un error de conexión.`,
+    }
   };
 
   const statusInfo = codes[Number(status)] || {
     message: `Código desconocido`,
-    details: `Se recibió un código de estado no contemplado.`,
+    details: `Se recibió el código ${status}.`,
   };
 
   return {
-    message: `${statusInfo.message} | URL:${url}`,
-    details: `${statusInfo.details} (Status): ${status}`,
-    trend: trend,
-    priority: priority,
+    status: Number(status),
+    url,
+    message: `${statusInfo.message} | URL: ${url}`,
+    details: statusInfo.details,
+    trend: trend, 
+    state: state, 
   };
 }
-
-module.exports = { analyzeStatus };

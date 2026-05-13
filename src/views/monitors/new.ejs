@@ -1,0 +1,17 @@
+<%- include('header') %>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+<h1>Crear formulario</h1>
+
+<form action="http://localhost:3000/monitors" method="post">
+  <div class="form-group">
+    <label for="name">Ingresar nombre del sitio</label>
+    <input type="text" class="form-control" id="name" name="name" aria-describedby="emailHelp" placeholder="Google">
+  </div>
+  <div class="form-group">
+    <label for="url">Ingresar la Url del sitio</label>
+    <input type="text" class="form-control" id="url" name="url"  placeholder="www.example.com">
+  </div>
+  <button type="submit" class="btn btn-primary">Guardar</button>
+</form>
+
+<%- include('footer') %>
