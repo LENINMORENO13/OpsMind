@@ -11,35 +11,43 @@ export const createMonitors = async (req, res) => {
     });
     if (existingMonitor) {
       return res.status(400).json({
-        error: "Ya existe un monitor con esa URL",
+        success: false,
+        error: "Monitor with this URL already exists",
         monitor: existingMonitor,
       });
     }
-
     const newMonitor = await prisma.monitor.create({
       data: {
         name,
         url,
       },
     });
-    // res.status(201).json(newMonitor);
-    res.redirect("/monitors");
+    return res.status(201).json({
+      success: true,
+      message: "Monitor created successfully",
+      data: newMonitor,
+    });
   } catch (error) {
-    console.error("Error al crear monitor:", error);
-    res.status(500).json({ error: "No se pudo crear el monitor" });
+    console.error("Error creating monitor:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to create monitor",
+    });
   }
 };
-
-export const renderNewForm = async(req,res)=>{
-  res.render('monitors/new')
-}
 
 export const getMonitors = async (req, res) => {
   try {
     const monitors = await prisma.monitor.findMany();
-    res.render("monitors/index", { monitors });
+    return res.status(200).json({
+      success: true,
+      data: monitors,
+    });
   } catch (error) {
-    res.status(500).send("Error en el servidor");
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
 
@@ -60,11 +68,12 @@ export const updateMonitors = async (req, res) => {
 
     if (duplicate) {
       return res.status(409).json({
-        error: "Ya existe un monitor con esa URL",
+        success: false,
+        error: "Monitor with this URL already exists",
         code: "URL_DUPLICATED",
       });
     }
-    await prisma.monitor.update({
+    const monitor = await prisma.monitor.update({
       where: {
         id: idConvert,
       },
@@ -73,51 +82,55 @@ export const updateMonitors = async (req, res) => {
         url,
       },
     });
-    res.redirect("/monitors");
+    return res.status(200).json({
+      success: true,
+      message: "Monitor updated successfully",
+      data: monitor,
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).send("Error en el servidor");
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
-};
-
-export const renderEditForm = async (req, res) => {
-  const { id } = req.params;
-  const idConvert = parseInt(id);
-  const monitor = await prisma.monitor.findUnique({
-    where: {
-      id: idConvert,
-    },
-  });
-  res.render("monitors/edit", { monitor });
 };
 
 export const deleteMonitors = async (req, res) => {
   const { id } = req.params;
   const idConvert = parseInt(id);
   if (isNaN(idConvert)) {
-    return res.status(400).json({ error: "ID inválido" });
+    return res.status(400).json({
+      success: false,
+      error: "Invalid ID format",
+    });
   }
   try {
-    await prisma.monitor.delete({
+    const monitor = await prisma.monitor.delete({
       where: {
         id: idConvert,
       },
     });
-    // return res.json({ message: "Monitor eliminado correctamente" });
-    res.redirect("/monitors");
+    return res.status(200).json({
+      success: true,
+      message: "Monitor deleted successfully",
+      data: monitor,
+    });
   } catch (error) {
-    console.log("Error al eliminar el monitor", error);
-    return res.status(500).json({ error: "Error al eliminar el monitor" });
+    console.error("Error deleting monitor:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to delete monitor",
+    });
   }
 };
 
 export const processUrl = async (url) => {
   try {
     const response = await check(url);
-    const history = await getHistory(url);
-
     const analysis = analyzeStatus(response);
-    console.log("DATOS PARA GUARDAR:", {
+    
+    console.log("DATA TO SAVE:", {
       url,
       status: response.status,
       state: analysis?.state,
@@ -125,12 +138,8 @@ export const processUrl = async (url) => {
       time: response.responseTime,
     });
 
-    // await save(url, response.status, analysis.state, analysis.trend, response.responseTime);
-
     return analysis;
   } catch (error) {
-    // await save(url, 0, "DOWN", 0, error.message);
-
     return {
       message: "Connection failed",
       trend: "OFFLINE",
@@ -156,10 +165,16 @@ export const getStatus = async (req, res) => {
         state: statusResult.state,
       });
     }
-    return res.json(results);
+    return res.status(200).json({
+      success: true,
+      data: results
+    });
   } catch (error) {
-    console.error("Error en getStatus:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error in getStatus:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
 
@@ -176,12 +191,21 @@ export const getStatusOne = async (req, res) => {
     });
 
     if (!targetUrl) {
-      return res.status(404).json({ error: "Site not monitored" });
+      return res.status(404).json({
+        success: false,
+        error: "Site not monitored",
+      });
     }
 
     const result = await processUrl(targetUrl.url);
-    return res.json(result);
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
   } catch (error) {
-    res.status(500).json({ error: "Error processing request" });
+    return res.status(500).json({
+      success: false,
+      error: "Error processing request",
+    });
   }
 };
