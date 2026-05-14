@@ -1,112 +1,81 @@
-# 🛡️ OpsMind
+# 🛡️ OpsMind: Smart Microservice Monitoring
 
-Sistema Inteligente de Monitoreo y Análisis para Microservicios
-
-OpsMind no es solo un monitor: es una plataforma modular que combina recolección de datos, análisis de tendencias, persistencia y alertas automáticas, con visión futura de inteligencia predictiva mediante IA.
+**OpsMind** es una plataforma de monitoreo de servicios enfocada en observabilidad, análisis de disponibilidad y seguimiento de incidentes en aplicaciones distribuidas.
 
 ---
 
-## Qué hace
+# ✨ Características Principales
 
-- **Monitoreo Automático:** Heartbeats HTTP para servicios críticos.
-- **Análisis Basado en Estados:** Detecta Recuperaciones, Caídas y Offline usando un buffer histórico.
-- **Prioridad Dinámica:** Asigna automáticamente incidentes de Low a Critical según tendencias.
-- **Historial y Persistencia:** Guarda las últimas 5 observaciones por servicio; futura integración con DB relacional para análisis largo plazo.
-- **Alertas Automáticas:** Posible integración con Email, Telegram y Discord.
-- **Panel Visual:** Dashboard interactivo para visualizar tendencias y disponibilidad.
-- **Inteligencia Predictiva:** Futuro soporte con LLMs para análisis de causas y predicción de fallos.
+- Arquitectura API-First con respuestas JSON estandarizadas.
+- Clasificación automática de estados: Stable, Recovered, Drop y Offline.
+- Sistema dinámico de prioridad de incidentes desde Low hasta Critical.
+- Arquitectura desacoplada basada en Clean Architecture y Prisma ORM.
 
 ---
 
-## Tech Stack
+# 🛠️ Stack Tecnológico
 
-- **Backend:** Node.js & Express
-- **HTTP Client:** Axios
-- **Arquitectura:** Modular Service-Oriented Architecture
-- **Persistencia:** SQLite/PostgreSQL (próximo)
-- **Dashboard:** React/Vue (próximo)
-- **IA:** OpenAI / Claude (futuro)
+- Node.js 20 LTS
+- Express 5.x
+- Prisma ORM
+- PostgreSQL / SQLite
+- Docker
+- GitHub Actions
+- OpenAI / Ollama (Roadmap)
+- Swagger / OpenAPI
 
 ---
 
+# 🚀 Instalación Rápida
 
-## Estructura del Proyecto
+## 1. Clonar repositorio
 
-```
-monitor-ia/
-├── src/
-│   ├── app.js                 # Punto de entrada
-│   ├── config.json            # URLs y intervalo de monitoreo
-│   ├── controllers/           # Orquestador
-│   ├── routes/                # Endpoints API
-│   ├── services/              # Checker, Analyzer, History
-│   └── utils/                 # Helpers, utils de tiempo
-├── logs/                      # Rotación futura de logs
-├── package.json
-└── README.md
+```bash
+git clone https://github.com/LENINMORENO13/OpsMind.git
+cd OpsMind
 ```
 
----
+## 2. Instalar dependencias
 
-## Endpoints
+```bash
+npm install
+```
 
-### /status
+## 3. Configurar entorno y ejecutar
 
-Retorna todos los servicios con su estado, tendencia y prioridad.
-
-### /status/:site
-
-Retorna estado de un servicio específico (case-insensitive).
-
-Ejemplo de respuesta:
-
-```json
-{
-  "message": "OK - Sitio operativo | URL:https://dentalmanager.alwaysdata.net/",
-  "details": "Respuesta exitosa. El servicio respondió correctamente. (Status): 200",
-  "trend": "Stable",
-  "priority": "Low"
-}
+```bash
+npx prisma migrate dev
+npx prisma generate
+npm run dev
 ```
 
 ---
 
-## Lógica de Tendencias
+# 📡 API Endpoints (v1)
 
-| Estado Actual | Estado Anterior | Tendencia     | Prioridad |
-|---------------|-----------------|---------------|-----------|
-| 200 OK        | 0 (Error)       | Recovered     | Medium    |
-| 0 (Error)     | 200 OK          | Drop detected | High      |
-| 0 (Error)     | 0 (Error)       | Offline       | Critical  |
-| 200 OK        | 200 OK          | Stable        | Low       |
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/v1/monitors` | Lista todos los servicios registrados |
+| POST | `/api/v1/monitors` | Registra un nuevo servicio |
+| PATCH | `/api/v1/monitors/:id` | Actualiza parcialmente un monitor |
+| DELETE | `/api/v1/monitors/:id` | Elimina un servicio |
+| GET | `/api/v1/monitors/status` | Ejecuta chequeo global de salud |
 
 ---
 
-## Roadmap / Futuras Actualizaciones
+# 🎯 Roadmap
 
-### v1.0 - Core Engine (COMPLETADO)
+- [x] REST API y respuestas estandarizadas
+- [ ] Swagger/OpenAPI documentation
+- [ ] Background workers para monitoreo autónomo
+- [ ] Dockerización completa del entorno
+- [ ] LLM-assisted incident analysis usando logs históricos
 
-- Arquitectura modular y servicios core
-- Lógica de historial y análisis de tendencias
-- API REST funcional con buffer de historial
-- Configuración local de zona horaria
+---
 
-### v1.1 - Persistencia
+# 👤 Autor
 
-- Integración con DB para historial largo
-- Rotación y gestión de logs
+**Lenin Moreno**  
+Backend Developer
 
-### v1.2 - Alertas
-
-- Notificaciones automáticas (Email / Telegram / Discord)
-- Umbrales configurables para alertas críticas
-
-### v1.3 - Dashboard
-
-- Interfaz web interactiva
-- Gráficos y métricas de disponibilidad
-
-### v2.0 - Inteligencia
-
-- LLM para análisis de causa raíz
-- Detección predictiva de fallos basados en patrones históricos
+Enfocado en sistemas resilientes, monitoreo distribuido y observabilidad backend.
