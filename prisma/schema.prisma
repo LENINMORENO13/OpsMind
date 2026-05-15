@@ -6,25 +6,51 @@ datasource db {
   provider = "postgresql"
 }
 
-model Log {
-  id           Int           @id @default(autoincrement())
-  url          String
-  status       Int
-  timestamp    DateTime      @default(now())
-  error        String?
-  responseTime Int
-  trend        TrendStatus   @default(STABLE)
-  state        ServiceStatus @default(PENDING)
+// 1. Definición del Monitor 
+model Monitor {
+  id            Int           @id @default(autoincrement())
+  url           String        @unique
+  name          String
+  isActive      Boolean       @default(true)
+  checkInterval Int           @default(300) // Intervalo en segundos
+  lastStatus    ServiceStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relaciones
+  logs     Log[]
+  insights AIInsight[]
 }
 
-model Monitor {
-  id         Int           @id @default(autoincrement())
-  url        String        @unique
-  name       String
-  isActive   Boolean       @default(true)
-  createdAt  DateTime      @default(now())
-  lastStatus ServiceStatus @default(PENDING)
+// 2. Historial de Monitoreo (Para análisis de tendencias)
+model Log {
+  id           Int           @id @default(autoincrement())
+  status       Int // Código HTTP (200, 404, 500, etc.)
+  responseTime Int // Tiempo de respuesta en ms
+  error        String? // Detalle del error si existe
+  trend        TrendStatus   @default(STABLE)
+  state        ServiceStatus @default(PENDING)
+  timestamp    DateTime      @default(now())
+
+  // Relación con Monitor
+  monitorId Int
+  monitor   Monitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
 }
+
+// 3. Capa de Inteligencia
+model AIInsight {
+  id          Int              @id @default(autoincrement())
+  analysis    String           @db.Text // Conclusión de la IA sobre la falla
+  suggestion  String?          @db.Text // Recomendación técnica de la IA
+  criticality CriticalityLevel
+  createdAt   DateTime         @default(now())
+
+  // Relación con Monitor
+  monitorId Int
+  monitor   Monitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+}
+
+// --- Enums para estandarizar estados ---
 
 enum ServiceStatus {
   UP
@@ -38,4 +64,11 @@ enum TrendStatus {
   DROP_DETECTED
   STABLE
   OFFLINE
+}
+
+enum CriticalityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
