@@ -1,20 +1,47 @@
 export const analyzeStatus = (currentCheck, lastRecord) => {
-  const currentState = currentCheck.online ? "UP" : "DOWN";
+
+  let currentState = "PENDING";
+
+  if (!currentCheck.online) {
+    currentState = "DOWN";
+  } else if (currentCheck.responseTime > 1500) {
+    currentState = "DEGRADED";
+  } else {
+    currentState = "UP";
+  }
 
   const previousState = lastRecord ? lastRecord.state : "UP";
 
-  let currentTrend = "";
+  let currentTrend = "STABLE";
 
   if (previousState === "UP" && currentState === "UP") {
     currentTrend = "STABLE";
+
+  } else if (previousState === "UP" && currentState === "DEGRADED") {
+    currentTrend = "DROP_DETECTED";
+
   } else if (previousState === "UP" && currentState === "DOWN") {
     currentTrend = "DROP_DETECTED";
+
+  } else if (previousState === "DEGRADED" && currentState === "UP") {
+    currentTrend = "RECOVERED";
+
   } else if (previousState === "DOWN" && currentState === "UP") {
     currentTrend = "RECOVERED";
+
+  } else if (previousState === "DOWN" && currentState === "DEGRADED") {
+    currentTrend = "RECOVERED";
+
+  } else if (previousState === "DEGRADED" && currentState === "DEGRADED") {
+    currentTrend = "STABLE";
+
+  } else if (previousState === "DEGRADED" && currentState === "DOWN") {
+    currentTrend = "DROP_DETECTED";
+
   } else if (previousState === "DOWN" && currentState === "DOWN") {
     currentTrend = "OFFLINE";
   }
-  
+
   const codes = {
     200: {
       message: "OK - Service Operational",
@@ -45,7 +72,7 @@ export const analyzeStatus = (currentCheck, lastRecord) => {
     message: statusInfo.message,
     details: statusInfo.details,
     trend: currentTrend,
-    responseTime: responseTime,
+    responseTime: currentCheck.responseTime,
     state: currentState,
     error: currentCheck.error,
   };
