@@ -5,7 +5,8 @@ import {
   getMonitors,
   createMonitors,
   updateMonitors,
-  deleteMonitors
+  deleteMonitors,
+  getMonitorHistory
 } from "../controllers/monitorController.js";
 
 const router = express.Router();
@@ -32,5 +33,8 @@ router.get("/status/all", getStatus);
 
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 router.get("/status/:site", getStatusOne);
+
+//Obtener los ultimos 10 logs
+router.get("/:id/history", getMonitorHistory);
 
 export default router;

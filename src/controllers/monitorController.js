@@ -141,7 +141,7 @@ export const getStatus = async (req, res) => {
     }
     return res.status(200).json({
       success: true,
-      data: results
+      data: results,
     });
   } catch (error) {
     console.error("Error in getStatus:", error);
@@ -174,12 +174,50 @@ export const getStatusOne = async (req, res) => {
     const result = await executeMonitorCheck(targetUrl);
     return res.status(200).json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       error: "Error processing request",
+    });
+  }
+};
+
+export const getMonitorHistory = async (req, res) => {
+  const { id } = req.params;
+  const idConvert = parseInt(id);
+  if (isNaN(idConvert)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid ID format",
+    });
+  }
+  try {
+    const monitorExists = await prisma.monitor.findUnique({
+      where: {
+        id: idConvert,
+      },
+    });
+
+    if (!monitorExists) {
+      return res.status(404).json({
+        success: false,
+        error: "Monitor not found",
+      });
+    }
+
+    const history = await getHistory(idConvert);
+
+    return res.status(200).json({
+      success: true,
+      data: history,
+    });
+  } catch (error) {
+    console.error(`Error fetching history for monitor ${id}:`, error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
     });
   }
 };
