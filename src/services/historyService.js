@@ -22,9 +22,9 @@ export const save = async (
       },
     });
     return newLog;
-  } catch (error) {
-    throw new Error("Se registro un error en la base de datos", {
-      cause: error,
+  } catch (err) {
+    throw new Error("Database persistence failed", {
+      cause: err,
     });
   }
 };
@@ -52,9 +52,10 @@ export const getLastRecord = async (id) => {
 
 export const executeMonitorCheck = async (monitor) => {
   try {
-    const getLatestRecord = await getLastRecord(monitor.id);
+    const lastRecord = await getLastRecord(monitor.id);
     const currentCheck = await check(monitor.url);
-    const analysisResult = await analyzeStatus(currentCheck, getLatestRecord);
+    const analysisResult = await analyzeStatus(currentCheck, lastRecord);
+    
     const savedLog = await save(
       monitor.id,
       currentCheck.status,
@@ -66,7 +67,7 @@ export const executeMonitorCheck = async (monitor) => {
     return savedLog;
   } catch (error) {
     console.error(
-      `Error ejecutando el chequeo para el monitor ${monitor.name}:`,
+      `Error executing monitor check for ${monitor.name}:`,
       error,
     );
     throw error;
