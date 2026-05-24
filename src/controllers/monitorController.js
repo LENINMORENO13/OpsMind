@@ -1,6 +1,4 @@
-import { check } from "../services/checker.js";
-import { analyzeStatus } from "../services/analyzer.js";
-import { save, getHistory } from "../services/historyService.js";
+import { getHistory, executeMonitorCheck } from "../services/historyService.js";
 import prisma from "../lib/prisma.js";
 
 export const createMonitors = async (req, res) => {
@@ -125,36 +123,12 @@ export const deleteMonitors = async (req, res) => {
   }
 };
 
-export const processUrl = async (url) => {
-  try {
-    const response = await check(url);
-    const analysis = analyzeStatus(response);
-    
-    console.log("DATA TO SAVE:", {
-      url,
-      status: response.status,
-      state: analysis?.state,
-      trend: analysis.trend,
-      time: response.responseTime,
-    });
-
-    return analysis;
-  } catch (error) {
-    return {
-      message: "Connection failed",
-      trend: "OFFLINE",
-      state: "DOWN",
-      error: true,
-    };
-  }
-};
-
 export const getStatus = async (req, res) => {
   try {
     const monitors = await prisma.monitor.findMany();
     const results = [];
     for (const monitor of monitors) {
-      const statusResult = await processUrl(monitor.url);
+      const statusResult = await executeMonitorCheck(monitor);
       results.push({
         id: monitor.id,
         name: monitor.name,
@@ -167,7 +141,7 @@ export const getStatus = async (req, res) => {
     }
     return res.status(200).json({
       success: true,
-      data: results
+      data: results,
     });
   } catch (error) {
     console.error("Error in getStatus:", error);
@@ -197,15 +171,53 @@ export const getStatusOne = async (req, res) => {
       });
     }
 
-    const result = await processUrl(targetUrl.url);
+    const result = await executeMonitorCheck(targetUrl);
     return res.status(200).json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       error: "Error processing request",
+    });
+  }
+};
+
+export const getMonitorHistory = async (req, res) => {
+  const { id } = req.params;
+  const idConvert = parseInt(id);
+  if (isNaN(idConvert)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid ID format",
+    });
+  }
+  try {
+    const monitorExists = await prisma.monitor.findUnique({
+      where: {
+        id: idConvert,
+      },
+    });
+
+    if (!monitorExists) {
+      return res.status(404).json({
+        success: false,
+        error: "Monitor not found",
+      });
+    }
+
+    const history = await getHistory(idConvert);
+
+    return res.status(200).json({
+      success: true,
+      data: history,
+    });
+  } catch (error) {
+    console.error(`Error fetching history for monitor ${id}:`, error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
     });
   }
 };

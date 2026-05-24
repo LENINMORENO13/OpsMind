@@ -1,6 +1,9 @@
 import prisma from "../lib/prisma.js";
+import { analyzeStatus } from "./analyzer.js";
+import { check } from "./checker.js";
+
 export const save = async (
-  url,
+  monitorId,
   status,
   state,
   trend,
@@ -10,7 +13,7 @@ export const save = async (
   try {
     const newLog = await prisma.log.create({
       data: {
-        url,
+        monitorId,
         status,
         state,
         trend,
@@ -19,23 +22,54 @@ export const save = async (
       },
     });
     return newLog;
-  } catch (error) {
-    console.error("Se registro un error en la base de datos", error);
+  } catch (err) {
+    throw new Error("Database persistence failed", {
+      cause: err,
+    });
   }
 };
 
-export const getHistory = async (url) => {
+export const getHistory = async (id) => {
+  return prisma.log.findMany({
+    where: { monitorId: id },
+    orderBy: {
+      timestamp: "desc",
+    },
+    take: 10,
+  });
+};
+
+export const getLastRecord = async (id) => {
+  return prisma.log.findFirst({
+    where: {
+      monitorId: id,
+    },
+    orderBy: {
+      timestamp: "desc",
+    },
+  });
+};
+
+export const executeMonitorCheck = async (monitor) => {
   try {
-    const logs = await prisma.log.findMany({
-      where: { url },
-      orderBy: {
-        timestamp: "desc",
-      },
-      take: 10,
-    });
-    return logs;
+    const lastRecord = await getLastRecord(monitor.id);
+    const currentCheck = await check(monitor.url);
+    const analysisResult = await analyzeStatus(currentCheck, lastRecord);
+    
+    const savedLog = await save(
+      monitor.id,
+      currentCheck.status,
+      analysisResult.state,
+      analysisResult.trend,
+      currentCheck.responseTime,
+      currentCheck.error,
+    );
+    return savedLog;
   } catch (error) {
-    console.error("Error al obtener el historial", error);
-    return [];
+    console.error(
+      `Error executing monitor check for ${monitor.name}:`,
+      error,
+    );
+    throw error;
   }
 };
