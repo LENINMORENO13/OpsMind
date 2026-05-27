@@ -3,7 +3,6 @@ import prisma from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
-  console.log(prisma)
   const { email, password } = req.body;
   try {
     const userExists = await prisma.user.findUnique({
