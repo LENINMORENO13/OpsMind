@@ -1,4 +1,5 @@
 import express from "express";
+import {verifyToken} from '../middlewares/authMiddleware.js'
 import {
   getStatus,
   getStatusOne,
@@ -124,7 +125,7 @@ router.patch("/:id", updateMonitors);
  *      500:
  *        description: Internal server error
  */
-router.delete("/:id", deleteMonitors);
+router.delete("/:id",verifyToken ,deleteMonitors);
 
 
 // --- RUTAS DE ESTADO/CHECKER ---
