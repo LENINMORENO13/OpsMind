@@ -4,6 +4,7 @@ import { getFormattedDate } from "./utils/helpers.js";
 import { startCronJobs } from "./services/scheduler.js";
 import { swaggerSpec } from "./config/swagger.js";
 import  swaggerUI  from "swagger-ui-express";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -16,6 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use("/api/v1/monitors", routes);
+
+app.use("/api/v1/auth", authRoutes)
 
 const PORT = 3000;
 app.listen(PORT, () => {
