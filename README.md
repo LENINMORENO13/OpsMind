@@ -29,7 +29,7 @@ El proyecto está diseñado bajo una arquitectura **API-First** y una estructura
 | Swagger UI                  | Documentación interactiva                  |
 | OpenAPI 3.0                 | Especificación de API                      |
 | Docker & Docker Compose     | Contenerización completa del entorno       |
-| Ollama / Gemini *(roadmap)* | Análisis inteligente de incidentes         |
+| @google/genai               | Análisis inteligente de incidentes con Gemini LLMs |
 
 ---
 
@@ -40,7 +40,7 @@ Client
    ↓
 REST API (Express) ← Swagger UI (/api-docs)
    ↓
-Service Layer (Checker, Analyzer, History)
+Service Layer (Checker, Analyzer, AI Analysis)
    ↓
 Prisma ORM
    ↓
@@ -48,7 +48,7 @@ PostgreSQL
 
 Background Workers (Node-Cron)
    ↓
-Health Check Automation
+Health Check Automation → AI Incident Analysis (Gemini)
 
 Contenedores Docker:
    ├── api: Aplicación Node.js Express
@@ -114,9 +114,9 @@ Clasificación histórica basada en transiciones operacionales detectadas autom�
 
 ---
 
-## 🔹 CriticalityLevel *(Preparado para IA)*
+## 🔹 CriticalityLevel
 
-Sistema de clasificación de criticidad diseñado para futuros análisis asistidos por LLMs.
+Sistema de clasificación de criticidad integrado con análisis asistido por LLMs.
 
 | Nivel      | Descripción                                |
 | ---------- | ------------------------------------------ |
@@ -125,7 +125,7 @@ Sistema de clasificación de criticidad diseñado para futuros análisis asistid
 | `HIGH`     | Impacto significativo en disponibilidad    |
 | `CRITICAL` | Servicio completamente caído o inaccesible |
 
-Actualmente `CriticalityLevel` existe en el modelo de dominio y será utilizado por futuros módulos de análisis inteligente de incidentes.
+Actualmente `CriticalityLevel` existe en el modelo de dominio e interactúa con el módulo de análisis inteligente de incidentes para priorizar respuestas automáticas.
 
 ---
 
@@ -216,7 +216,26 @@ docker compose up --build
 * [x] Swagger/OpenAPI Documentation
 * [x] Background workers con `node-cron`
 * [x] Dockerización completa
-* [ ] Análisis inteligente de incidentes con LLMs
+* [x] Análisis inteligente de incidentes con Gemini LLMs
+
+---
+
+# 🤖 Análisis Inteligente con IA
+
+OpsMind integra Gemini LLMs para diagnóstico automático de incidentes, generando:
+
+* **Causa probable:** Explicación técnica de 1-2 líneas sobre el origen del error.
+* **Acción recomendada:** Comando, log o servicio específico a revisar primero.
+
+## Configuración
+
+Añade tu API Key de Gemini en `.env`:
+
+```bash
+GEMINI_API_KEY=tu_api_key_aqui
+```
+
+El servicio usa `gemini-2.5-flash-lite` con schema JSON estricto y retry automático para mayor resiliencia.
 
 ---
 
