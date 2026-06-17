@@ -1,12 +1,24 @@
-import { getHistory, executeMonitorCheck } from "../services/historyService.js";
 import prisma from "../lib/prisma.js";
+import { getHistory, executeMonitorCheck } from "../services/historyService.js";
 
+// --- CREAR MONITOR  ---
 export const createMonitors = async (req, res) => {
   const { name, url } = req.body;
+
+  // Validación básica de campos requeridos
+  if (!name || !url) {
+    return res.status(400).json({
+      success: false,
+      error: "The 'name' and 'url' properties are absolutely mandatory.",
+    });
+  }
+
   try {
+    // Evita duplicidad de URLs en el sistema
     const existingMonitor = await prisma.monitor.findUnique({
       where: { url },
     });
+
     if (existingMonitor) {
       return res.status(400).json({
         success: false,
@@ -14,12 +26,11 @@ export const createMonitors = async (req, res) => {
         monitor: existingMonitor,
       });
     }
+
     const newMonitor = await prisma.monitor.create({
-      data: {
-        name,
-        url,
-      },
+      data: { name, url },
     });
+
     return res.status(201).json({
       success: true,
       message: "Monitor created successfully",
@@ -34,6 +45,7 @@ export const createMonitors = async (req, res) => {
   }
 };
 
+// --- LISTAR MONITORES  ---
 export const getMonitors = async (req, res) => {
   try {
     const monitors = await prisma.monitor.findMany();
@@ -42,6 +54,7 @@ export const getMonitors = async (req, res) => {
       data: monitors,
     });
   } catch (error) {
+    console.error("Error fetching monitors:", error);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -49,18 +62,26 @@ export const getMonitors = async (req, res) => {
   }
 };
 
+// --- ACTUALIZAR MONITOR  ---
 export const updateMonitors = async (req, res) => {
   const { id } = req.params;
   const { url, name } = req.body;
   const idConvert = parseInt(id);
 
+  // Validación preventiva del formato del ID numérico
+  if (isNaN(idConvert)) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid ID format",
+    });
+  }
+
   try {
+    // Validamos que el cambio de URL no colisione con el registro de otro monitor diferente
     const duplicate = await prisma.monitor.findFirst({
       where: {
         url: url,
-        NOT: {
-          id: idConvert,
-        },
+        NOT: { id: idConvert },
       },
     });
 
@@ -71,22 +92,19 @@ export const updateMonitors = async (req, res) => {
         code: "URL_DUPLICATED",
       });
     }
+
     const monitor = await prisma.monitor.update({
-      where: {
-        id: idConvert,
-      },
-      data: {
-        name,
-        url,
-      },
+      where: { id: idConvert },
+      data: { name, url },
     });
+
     return res.status(200).json({
       success: true,
       message: "Monitor updated successfully",
       data: monitor,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating monitor:", error);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -94,21 +112,34 @@ export const updateMonitors = async (req, res) => {
   }
 };
 
+// --- ELIMINAR MONITOR  ---
 export const deleteMonitors = async (req, res) => {
   const { id } = req.params;
   const idConvert = parseInt(id);
+
   if (isNaN(idConvert)) {
     return res.status(400).json({
       success: false,
       error: "Invalid ID format",
     });
   }
+
   try {
-    const monitor = await prisma.monitor.delete({
-      where: {
-        id: idConvert,
-      },
+    const existingMonitor = await prisma.monitor.findUnique({
+      where: { id: idConvert },
     });
+
+    if (!existingMonitor) {
+      return res.status(404).json({
+        success: false,
+        error: "Monitor not found",
+      });
+    }
+
+    const monitor = await prisma.monitor.delete({
+      where: { id: idConvert },
+    });
+
     return res.status(200).json({
       success: true,
       message: "Monitor deleted successfully",
@@ -123,10 +154,13 @@ export const deleteMonitors = async (req, res) => {
   }
 };
 
+// --- CHEQUEO GENERAL EN TIEMPO REAL---
 export const getStatus = async (req, res) => {
   try {
     const monitors = await prisma.monitor.findMany();
     const results = [];
+
+    // Evaluamos secuencialmente el estado de salud de cada monitor registrado
     for (const monitor of monitors) {
       const statusResult = await executeMonitorCheck(monitor);
       results.push({
@@ -139,12 +173,13 @@ export const getStatus = async (req, res) => {
         state: statusResult.state,
       });
     }
+
     return res.status(200).json({
       success: true,
       data: results,
     });
   } catch (error) {
-    console.error("Error in getStatus:", error);
+    console.error("Error in getStatus execution loop:", error);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -152,6 +187,7 @@ export const getStatus = async (req, res) => {
   }
 };
 
+// --- CHEQUEO DE UN SITIO INDIVIDUAL POR NOMBRE ---
 export const getStatusOne = async (req, res) => {
   const { site } = req.params;
   try {
@@ -159,7 +195,7 @@ export const getStatusOne = async (req, res) => {
       where: {
         name: {
           equals: site,
-          mode: "insensitive",
+          mode: "insensitive", 
         },
       },
     });
@@ -177,6 +213,7 @@ export const getStatusOne = async (req, res) => {
       data: result,
     });
   } catch (error) {
+    console.error(`Error processing health check for site ${site}:`, error);
     return res.status(500).json({
       success: false,
       error: "Error processing request",
@@ -184,20 +221,21 @@ export const getStatusOne = async (req, res) => {
   }
 };
 
+// --- HISTORIAL DE UN MONITOR ---
 export const getMonitorHistory = async (req, res) => {
   const { id } = req.params;
   const idConvert = parseInt(id);
+
   if (isNaN(idConvert)) {
     return res.status(400).json({
       success: false,
       error: "Invalid ID format",
     });
   }
+
   try {
     const monitorExists = await prisma.monitor.findUnique({
-      where: {
-        id: idConvert,
-      },
+      where: { id: idConvert },
     });
 
     if (!monitorExists) {
