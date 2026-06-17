@@ -45,6 +45,9 @@ jobs:
           echo "GEMINI_API_KEY=test_dummy_key" >> $GITHUB_ENV
           echo "PORT=3000" >> $GITHUB_ENV
 
+      - name: Generate prisma client
+        run: npx prisma generate
+
       - name: Push Prisma schema to test database
         run: npx prisma db push
 
