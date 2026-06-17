@@ -1,7 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// 1. Inicialización con el nuevo SDK oficial de Google
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const analyzeIncident = async (
@@ -10,6 +8,8 @@ export const analyzeIncident = async (
   errorDetails,
   retries = 3,
 ) => {
+  // 1. Inicialización con el nuevo SDK oficial de Google
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   try {
     const prompt = `
       Eres un Ingeniero Site Reliability (SRE) Senior diagnosticando una alerta de monitoreo.
@@ -50,7 +50,6 @@ export const analyzeIncident = async (
 
     // 3. El output viene limpio de Markdown gracias al MimeType, permitiendo un parseo directo y seguro
     return JSON.parse(response.text);
-
   } catch (error) {
     // 4. Estrategia de resiliencia: captura códigos de saturación (429/503) para aplicar reintentos recursivos
     const errorString = JSON.stringify(error) || error.message || "";
