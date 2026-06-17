@@ -21,7 +21,7 @@ jobs:
           - 5432:5432
         # Ensure GitHub Actions waits for PostgreSQL to be ready before moving to steps
         options: >-
-          --health-cmd "pg_isready -U test_user"
+          --health-cmd "pg_isready -U test_user -d monitor_test_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -44,6 +44,7 @@ jobs:
           echo "DATABASE_URL=postgresql://test_user:test_password@localhost:5432/monitor_test_db?schema=public" >> $GITHUB_ENV
           echo "GEMINI_API_KEY=test_dummy_key" >> $GITHUB_ENV
           echo "PORT=3000" >> $GITHUB_ENV
+          echo "JWT_SECRET=super_secreto_para_entorno_de_pruebas" >> $GITHUB_ENV
 
       - name: Generate prisma client
         run: npx prisma generate
