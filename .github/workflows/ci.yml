@@ -1,0 +1,52 @@
+name: CI - OpsMind
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: monitor_test_db
+        ports:
+          - 5432:5432
+        # Ensure GitHub Actions waits for PostgreSQL to be ready before moving to steps
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure environment variables
+        # Inject required env vars for the test runner environment
+        run: |
+          echo "DATABASE_URL=postgresql://test_user:test_password@localhost:5432/monitor_test_db?schema=public" >> $GITHUB_ENV
+          echo "GEMINI_API_KEY=test_dummy_key" >> $GITHUB_ENV
+          echo "PORT=3000" >> $GITHUB_ENV
+
+      - name: Push Prisma schema to test database
+        run: npx prisma db push
+
+      - name: Run test suite
+        run: npm test
