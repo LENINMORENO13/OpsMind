@@ -12,13 +12,22 @@ const options = {
     servers: [
       {
         url: "https://opsmind-e07b.onrender.com",
-        description: "Servidor de Producción"
+        description: "Production Server",
       },
       {
         url: "http://localhost:3000",
         description: "Local Development Server",
       },
     ],
+    components: {
+      securitySchemas: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
   },
   apis: ["./src/routes/*.js"],
 };

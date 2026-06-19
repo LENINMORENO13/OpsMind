@@ -109,6 +109,8 @@ router.patch("/:id", updateMonitors);
  *    tags:
  *      - Monitors
  *    summary: Delete a monitor
+ *    security: 
+ *      - bearerAuth: []
  *    parameters:
  *      - name: id
  *        in: path
