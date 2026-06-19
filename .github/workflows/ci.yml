@@ -54,8 +54,8 @@ jobs:
       - name: Generate prisma client
         run: npx prisma generate
 
-      - name: Push Prisma schema to test database
-        run: npx prisma db push
+      # - name: Push Prisma schema to test database
+      #   run: npx prisma db push
 
       - name: Run test suite
         run: npm test
