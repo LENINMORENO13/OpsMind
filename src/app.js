@@ -3,7 +3,7 @@ import routes from "./routes/monitorRoutes.js";
 import { getFormattedDate } from "./utils/helpers.js";
 import { startCronJobs } from "./services/scheduler.js";
 import { swaggerSpec } from "./config/swagger.js";
-import  swaggerUI  from "swagger-ui-express";
+import swaggerUI from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
@@ -18,10 +18,14 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use("/api/v1/monitors", routes);
 
-app.use("/api/v1/auth", authRoutes)
+app.use("/api/v1/auth", authRoutes);
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en: http://localhost:${PORT}/monitors`);
-  startCronJobs();
-});
+if (process.env.NODE_ENV !== "test") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    startCronJobs();
+  });
+}
+
+export default app;

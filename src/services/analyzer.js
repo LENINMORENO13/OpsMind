@@ -1,5 +1,4 @@
 export const analyzeStatus = (currentCheck, lastRecord) => {
-
   let currentState = "PENDING";
 
   if (!currentCheck.online) {
@@ -10,34 +9,32 @@ export const analyzeStatus = (currentCheck, lastRecord) => {
     currentState = "UP";
   }
 
-  const previousState = lastRecord ? lastRecord.state : "UP";
+  const previousState = lastRecord ? lastRecord.state : "PENDING";
 
   let currentTrend = "STABLE";
 
-  if (previousState === "UP" && currentState === "UP") {
+  if (previousState === "PENDING" && currentState === "UP") {
     currentTrend = "STABLE";
-
+  } else if (previousState === "PENDING" && currentState === "DOWN") {
+    currentTrend = "OFFLINE";
+  } else if (previousState === "PENDING" && currentState === "DEGRADED") {
+    currentTrend = "STABLE";
+  } else if (previousState === "UP" && currentState === "UP") {
+    currentTrend = "STABLE";
   } else if (previousState === "UP" && currentState === "DEGRADED") {
     currentTrend = "DROP_DETECTED";
-
   } else if (previousState === "UP" && currentState === "DOWN") {
     currentTrend = "DROP_DETECTED";
-
   } else if (previousState === "DEGRADED" && currentState === "UP") {
     currentTrend = "RECOVERED";
-
   } else if (previousState === "DOWN" && currentState === "UP") {
     currentTrend = "RECOVERED";
-
   } else if (previousState === "DOWN" && currentState === "DEGRADED") {
     currentTrend = "RECOVERED";
-
   } else if (previousState === "DEGRADED" && currentState === "DEGRADED") {
     currentTrend = "STABLE";
-
   } else if (previousState === "DEGRADED" && currentState === "DOWN") {
     currentTrend = "DROP_DETECTED";
-
   } else if (previousState === "DOWN" && currentState === "DOWN") {
     currentTrend = "OFFLINE";
   }

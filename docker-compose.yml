@@ -1,0 +1,31 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: opsmind-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lenin_dev
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: opsmind_db
+
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: .  
+    container_name: opsmind-api
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db      
+    environment:
+      JWT_SECRET: "mi_secreto_super_bloqueado_2026"
+      DATABASE_URL: "postgresql://lenin_dev:password123@db:5432/opsmind_db?schema=public"
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+    
+volumes:
+  db_data:

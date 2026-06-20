@@ -4,13 +4,17 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles",
+    "start": "node src/app.js",
+    "dev": "tsx watch src/app.js",
+    "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/genai": "^2.7.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "axios": "^1.13.6",
@@ -25,9 +29,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
     "@types/node": "^25.5.0",
     "@types/pg": "^8.20.0",
+    "cross-env": "^10.1.0",
+    "jest": "^30.4.2",
     "prisma": "^7.6.0",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"

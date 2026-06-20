@@ -1,5 +1,5 @@
 import express from "express";
-import {verifyToken} from '../middlewares/authMiddleware.js'
+import { verifyToken } from "../middlewares/authMiddleware.js";
 import {
   getStatus,
   getStatusOne,
@@ -7,7 +7,7 @@ import {
   createMonitors,
   updateMonitors,
   deleteMonitors,
-  getMonitorHistory
+  getMonitorHistory,
 } from "../controllers/monitorController.js";
 
 const router = express.Router();
@@ -19,7 +19,7 @@ const router = express.Router();
  * @openapi
  * /api/v1/monitors:
  *  get:
- *    tags: 
+ *    tags:
  *      - Monitors
  *    summary: List all available monitors
  *    responses:
@@ -29,6 +29,7 @@ const router = express.Router();
  *        description: Internal server error
  */
 router.get("/", getMonitors);
+
 
 // Crear un monitor (POST /api/v1/monitors)
 /**
@@ -64,8 +65,6 @@ router.get("/", getMonitors);
  */
 router.post("/", createMonitors);
 
-
-
 // Actualizar un monitor (PATCH /api/v1/monitors/:id)
 /**
  * @openapi
@@ -74,10 +73,10 @@ router.post("/", createMonitors);
  *    tags:
  *      - Monitors
  *    summary: Update a monitor
- *    parameters: 
+ *    parameters:
  *      - name: id
  *        in: path
- *        required: true 
+ *        required: true
  *        schema:
  *          type: integer
  *    requestBody:
@@ -102,7 +101,6 @@ router.post("/", createMonitors);
  */
 router.patch("/:id", updateMonitors);
 
-
 // Eliminar un monitor (DELETE /api/v1/monitors/:id)
 /**
  * @openapi
@@ -111,10 +109,12 @@ router.patch("/:id", updateMonitors);
  *    tags:
  *      - Monitors
  *    summary: Delete a monitor
- *    parameters: 
+ *    security: 
+ *      - bearerAuth: []
+ *    parameters:
  *      - name: id
  *        in: path
- *        required: true 
+ *        required: true
  *        schema:
  *          type: integer
  *    responses:
@@ -125,8 +125,7 @@ router.patch("/:id", updateMonitors);
  *      500:
  *        description: Internal server error
  */
-router.delete("/:id",verifyToken ,deleteMonitors);
-
+router.delete("/:id", verifyToken, deleteMonitors);
 
 // --- RUTAS DE ESTADO/CHECKER ---
 
@@ -135,7 +134,7 @@ router.delete("/:id",verifyToken ,deleteMonitors);
  * @openapi
  * /api/v1/monitors/status/all:
  *  get:
- *    tags: 
+ *    tags:
  *      - Monitors
  *    summary: Get the current status of all available monitors
  *    responses:
@@ -146,7 +145,6 @@ router.delete("/:id",verifyToken ,deleteMonitors);
  */
 router.get("/status/all", getStatus);
 
-
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 /**
  * @openapi
@@ -155,10 +153,10 @@ router.get("/status/all", getStatus);
  *    tags:
  *      - Monitors
  *    summary: Get the status of a specific monitor
- *    parameters: 
+ *    parameters:
  *      - name: site
  *        in: path
- *        required: true 
+ *        required: true
  *        schema:
  *          type: string
  *    responses:
@@ -171,7 +169,6 @@ router.get("/status/all", getStatus);
  */
 router.get("/status/:site", getStatusOne);
 
-
 //Obtener los ultimos 10 logs
 /**
  * @openapi
@@ -180,10 +177,10 @@ router.get("/status/:site", getStatusOne);
  *    tags:
  *      - Monitors
  *    summary: Retrieve the last 10 logs for a specific monitor
- *    parameters: 
+ *    parameters:
  *      - name: id
  *        in: path
- *        required: true 
+ *        required: true
  *        schema:
  *          type: integer
  *    responses:
