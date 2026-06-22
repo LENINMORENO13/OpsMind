@@ -1,247 +1,226 @@
 # 🛡️ OpsMind: Smart Microservice Monitoring
 
-**OpsMind** es una plataforma de monitoreo y observabilidad de microservicios enfocada en disponibilidad, seguimiento de estados y análisis operacional de servicios distribuidos.
+![CI](https://github.com/LENINMORENO13/OpsMind/actions/workflows/ci.yml/badge.svg)
 
-El proyecto está diseñado bajo una arquitectura **API-First** y una estructura desacoplada orientada a backend engineering moderno, incorporando workers en segundo plano, monitoreo automatizado y documentación interactiva mediante OpenAPI.
+OpsMind es una plataforma de monitoreo y observabilidad de microservicios enfocada en disponibilidad, seguimiento de estados y análisis operacional de servicios distribuidos.
+
+Diseñado bajo arquitectura **API-First**, con workers en segundo plano, autenticación JWT y análisis inteligente con IA.
+
+---
+
+# 📚 Tabla de Contenidos
+
+- [Características](#-características-principales)
+- [Stack](#-stack-tecnológico)
+- [Arquitectura](#-arquitectura-general)
+- [API](#-api-endpoints-v1)
+- [Estados](#-estados-del-sistema)
+- [Instalación](#-instalación-y-ejecución)
+- [Testing](#-pruebas-automatizadas)
+- [IA](#-análisis-inteligente-con-ia)
+- [Producción](#-producción-render)
+- [Roadmap](#-roadmap)
+- [Autor](#-autor)
 
 ---
 
 # ✨ Características Principales
 
-* **Arquitectura API-First:** respuestas JSON estandarizadas y consistentes en todos los endpoints.
-* **Health Monitoring Engine:** seguimiento automatizado de estados operacionales y tendencias históricas de disponibilidad.
-* **Background Workers:** ejecución periódica de verificaciones usando `node-cron` sin bloquear el servidor principal.
-* **Swagger/OpenAPI Integration:** documentación interactiva en vivo utilizando Swagger UI y OpenAPI 3.0.
-* **Arquitectura desacoplada:** separación de responsabilidades mediante capas de servicio y Prisma ORM.
-* **Contenerización con Docker:** entorno completamente automatizado con Docker Compose para desarrollo y despliegue consistentes.
+- API-First con respuestas JSON consistentes
+- Seguridad global con JWT
+- Health monitoring engine en tiempo real
+- Background workers con `node-cron`
+- Swagger/OpenAPI en vivo
+- Arquitectura desacoplada con Prisma
+- Contenerización con Docker
+- Análisis de incidentes con IA (Gemini)
 
 ---
 
 # 🛠️ Stack Tecnológico
 
-| Tecnología                  | Uso                                        |
-| --------------------------- | ------------------------------------------ |
-| Node.js                     | Runtime principal                          |
-| Express                     | Framework HTTP                             |
-| Prisma ORM                  | Acceso y modelado de base de datos         |
-| PostgreSQL                  | Persistencia de datos y logs operacionales |
-| Node-Cron                   | Workers programados                        |
-| Swagger UI                  | Documentación interactiva                  |
-| OpenAPI 3.0                 | Especificación de API                      |
-| Docker & Docker Compose     | Contenerización completa del entorno       |
-| @google/genai               | Análisis inteligente de incidentes con Gemini LLMs |
+| Tecnología | Uso |
+|------------|-----|
+| Node.js | Runtime |
+| Express | API HTTP |
+| Prisma ORM | Base de datos |
+| PostgreSQL | Persistencia |
+| Node-Cron | Workers |
+| Jest + Supertest | Testing |
+| Swagger UI | Documentación |
+| OpenAPI 3.0 | Especificación |
+| Docker | Contenedores |
+| GitHub Actions | CI |
+| Gemini API | IA de incidentes |
 
 ---
 
 # 🧠 Arquitectura General
 
-```text
-Client
-   ↓
-REST API (Express) ← Swagger UI (/api-docs)
-   ↓
-Service Layer (Checker, Analyzer, AI Analysis)
-   ↓
-Prisma ORM
-   ↓
-PostgreSQL
+```mermaid
+graph TD
+Client --> API[Express API]
+API --> Auth[JWT Middleware]
+Auth --> Services[Service Layer]
+Services --> Prisma
+Prisma --> DB[(PostgreSQL)]
 
-Background Workers (Node-Cron)
-   ↓
-Health Check Automation → AI Incident Analysis (Gemini)
-
-Contenedores Docker:
-   ├── api: Aplicación Node.js Express
-   └── db: Base de datos PostgreSQL
+Workers[Node-Cron Workers] --> Services
+Workers --> IA[Gemini Analysis]
 ```
 
 ---
 
 # 📡 API Endpoints (v1)
 
-Documentación interactiva disponible en:
+## 🔐 Auth
 
-```text
-http://localhost:3000/api-docs
+| Método | Endpoint              | Descripción |
+| ------ | --------------------- | ----------- |
+| POST   | /api/v1/auth/register | Registro    |
+| POST   | /api/v1/auth/login    | Login + JWT |
+
+---
+
+## 📊 Monitors (Protegido)
+
+Authorization requerido:
+
+```http
+Authorization: Bearer <token>
 ```
 
-## 🔹 Gestión de Monitores
-
-| Método | Endpoint               | Descripción                           |
-| ------ | ---------------------- | ------------------------------------- |
-| GET    | `/api/v1/monitors`     | Lista todos los monitores registrados |
-| POST   | `/api/v1/monitors`     | Registra un nuevo monitor             |
-| PATCH  | `/api/v1/monitors/:id` | Actualiza parcialmente un monitor     |
-| DELETE | `/api/v1/monitors/:id` | Elimina un monitor                    |
-
-## 🔹 Estado y Observabilidad
-
-| Método | Endpoint                        | Descripción                           |
-| ------ | ------------------------------- | ------------------------------------- |
-| GET    | `/api/v1/monitors/status/all`   | Estado general de todos los servicios |
-| GET    | `/api/v1/monitors/status/:site` | Estado detallado de un servicio       |
-| GET    | `/api/v1/monitors/:id/history`  | Historial reciente de verificaciones  |
+| Método | Endpoint             | Descripción      |
+| ------ | -------------------- | ---------------- |
+| GET    | /api/v1/monitors     | Listar monitores |
+| POST   | /api/v1/monitors     | Crear monitor    |
+| PATCH  | /api/v1/monitors/:id | Actualizar       |
+| DELETE | /api/v1/monitors/:id | Eliminar         |
 
 ---
 
-# 📊 Estados y Tendencias Operacionales
+## 📈 Observabilidad
 
-OpsMind diferencia entre el estado actual de un servicio y su comportamiento histórico para detectar degradaciones, recuperaciones y caídas persistentes.
-
-## 🔹 ServiceStatus
-
-Estado actual del servicio monitoreado.
-
-| Estado     | Descripción                                                        |
-| ---------- | ------------------------------------------------------------------ |
-| `UP`       | El servicio responde correctamente                                 |
-| `DEGRADED` | El servicio responde, pero con latencias altas o errores parciales |
-| `DOWN`     | El servicio no responde o falló el health check                    |
-| `PENDING`  | Historial insuficiente para determinar estabilidad                 |
+| Método | Endpoint                      | Descripción         |
+| ------ | ----------------------------- | ------------------- |
+| GET    | /api/v1/monitors/status/all   | Estado general      |
+| GET    | /api/v1/monitors/status/:site | Estado por servicio |
+| GET    | /api/v1/monitors/:id/history  | Historial           |
 
 ---
 
-## 🔹 TrendStatus
+# 📊 Estados del Sistema
 
-Clasificación histórica basada en transiciones operacionales detectadas automáticamente por el sistema.
+## ServiceStatus
 
-| Tendencia       | Descripción                                                    |
-| --------------- | -------------------------------------------------------------- |
-| `STABLE`        | El servicio mantiene un comportamiento saludable y consistente |
-| `RECOVERED`     | El servicio estuvo degradado o caído y volvió a la normalidad  |
-| `DROP_DETECTED` | Se detectó una caída o degradación repentina                   |
-| `OFFLINE`       | El servicio permanece caído continuamente                      |
+* UP → funcionando
+* DEGRADED → lento o inestable
+* DOWN → caído
+* PENDING → sin datos
 
----
+## TrendStatus
 
-## 🔹 CriticalityLevel
+* STABLE → estable
+* RECOVERED → recuperación
+* DROP_DETECTED → caída
+* OFFLINE → caído persistente
 
-Sistema de clasificación de criticidad integrado con análisis asistido por LLMs.
+## CriticalityLevel
 
-| Nivel      | Descripción                                |
-| ---------- | ------------------------------------------ |
-| `LOW`      | Variaciones menores o impacto reducido     |
-| `MEDIUM`   | Degradación parcial del servicio           |
-| `HIGH`     | Impacto significativo en disponibilidad    |
-| `CRITICAL` | Servicio completamente caído o inaccesible |
-
-Actualmente `CriticalityLevel` existe en el modelo de dominio e interactúa con el módulo de análisis inteligente de incidentes para priorizar respuestas automáticas.
-
----
-
-#  Ejemplo de Respuesta JSON
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 2,
-      "url": "https://facebook.com",
-      "name": "Facebook",
-      "isActive": true,
-      "checkInterval": 300,
-      "lastStatus": "PENDING",
-      "createdAt": "2026-05-24T17:56:35.676Z",
-      "updatedAt": "2026-05-24T17:56:35.676Z"
-    }
-  ]
-}
-```
-
----
-
-# ⏱️ Intervalos de Verificación
-
-Cada monitor ejecuta verificaciones automáticas mediante workers en segundo plano usando `node-cron`.
-
-```json
-{
-  "checkInterval": 300
-}
-```
-
-El valor representa los segundos entre cada verificación automática.
+* LOW
+* MEDIUM
+* HIGH
+* CRITICAL
 
 ---
 
 # 🚀 Instalación y Ejecución
 
-## Con Docker *(Recomendado)*
-
-### 1. Clonar el repositorio
+## 1. Clonar repo
 
 ```bash
 git clone https://github.com/LENINMORENO13/OpsMind.git
 cd OpsMind
 ```
 
-### 2. Configurar variables de entorno
+## 2. Variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Construir y levantar los contenedores
+## 3. Docker
 
 ```bash
 docker compose up --build
 ```
 
-La aplicación estará disponible en:
+* API: [http://localhost:3000](http://localhost:3000)
+* Swagger: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+* DB: PostgreSQL (db:5432)
 
-* API: `http://localhost:3000`
-* Swagger Docs: `http://localhost:3000/api-docs`
-* PostgreSQL: `localhost:5432`
-
-> Dentro de Docker, PostgreSQL será accesible como `db:5432`.
-
-### 4. Detener y eliminar contenedores
+## 4. Detener
 
 ```bash
 docker compose down
 ```
 
-### 5. Reconstruir después de cambios de dependencias
-
-```bash
-docker compose up --build
-```
-
 ---
 
-# 🎯 Roadmap
+# 🧪 Pruebas Automatizadas
 
-* [x] REST API estructurada
-* [x] Swagger/OpenAPI Documentation
-* [x] Background workers con `node-cron`
-* [x] Dockerización completa
-* [x] Análisis inteligente de incidentes con Gemini LLMs
+```bash
+npm test
+```
+
+Incluye:
+
+* Auth JWT
+* CRUD Monitors
+* Validaciones 401 / 400 / 404
+* Prisma + DB real
 
 ---
 
 # 🤖 Análisis Inteligente con IA
 
-OpsMind integra Gemini LLMs para diagnóstico automático de incidentes, generando:
+OpsMind usa Gemini para:
 
-* **Causa probable:** Explicación técnica de 1-2 líneas sobre el origen del error.
-* **Acción recomendada:** Comando, log o servicio específico a revisar primero.
-
-## Configuración
-
-Añade tu API Key de Gemini en `.env`:
+* Diagnóstico automático
+* Causa probable
+* Acción recomendada
 
 ```bash
-GEMINI_API_KEY=tu_api_key_aqui
+GEMINI_API_KEY=tu_key
 ```
 
-El servicio usa `gemini-2.5-flash-lite` con schema JSON estricto y retry automático para mayor resiliencia.
+---
+
+# 🌐 Producción (Render)
+
+* API: [https://opsmind-e07b.onrender.com](https://opsmind-e07b.onrender.com)
+* Docs: [https://opsmind-e07b.onrender.com/api-docs](https://opsmind-e07b.onrender.com/api-docs)
+
+---
+
+# 🎯 Roadmap
+
+* [x] API REST modular
+* [x] JWT global security
+* [x] Swagger docs
+* [x] Workers con cron
+* [x] Docker setup
+* [x] IA con Gemini
+* [x] Testing completo
+* [x] CI/CD con GitHub Actions
 
 ---
 
 # 👤 Autor
 
-**Lenin Moreno**
-Backend Developer
+**Lenin Moreno** - Backend Developer  
+Enfocado en sistemas distribuidos, observabilidad y backend resiliente.
 
-Enfocado en sistemas distribuidos, observabilidad backend y arquitecturas resilientes.
+🛸 **¡Conectemos!**
+* [🌐 LinkedIn](https://www.linkedin.com/in/lenin-moreno/)
+* [💼 Portafolio Web / Gitvlg](https://leninmoreno13.gitvlg.com/)
