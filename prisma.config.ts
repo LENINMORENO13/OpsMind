@@ -6,7 +6,13 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
-const databaseUrl = env("DATABASE_URL") || env("DIRECT_URL");
+const databaseUrl = env("DIRECT_URL") || env("DATABASE_URL");
+
+if (!databaseUrl) {
+  throw new Error(
+    "Database connection URL is missing in environment variables.",
+  );
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
