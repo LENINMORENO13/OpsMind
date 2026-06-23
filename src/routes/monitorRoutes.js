@@ -28,7 +28,7 @@ const router = express.Router();
  *      500:
  *        description: Internal server error
  */
-router.get("/", getMonitors);
+router.get("/", verifyToken, getMonitors);
 
 
 // Crear un monitor (POST /api/v1/monitors)
@@ -63,7 +63,7 @@ router.get("/", getMonitors);
  *      500:
  *        description: Internal server error
  */
-router.post("/", createMonitors);
+router.post("/", verifyToken, createMonitors);
 
 // Actualizar un monitor (PATCH /api/v1/monitors/:id)
 /**
@@ -99,7 +99,7 @@ router.post("/", createMonitors);
  *      500:
  *        description: Internal server error
  */
-router.patch("/:id", updateMonitors);
+router.patch("/:id", verifyToken, updateMonitors);
 
 // Eliminar un monitor (DELETE /api/v1/monitors/:id)
 /**
@@ -143,7 +143,7 @@ router.delete("/:id", verifyToken, deleteMonitors);
  *      500:
  *        description: Internal server error
  */
-router.get("/status/all", getStatus);
+router.get("/status/all", verifyToken, getStatus);
 
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 /**
@@ -167,7 +167,7 @@ router.get("/status/all", getStatus);
  *      500:
  *        description: Internal server error
  */
-router.get("/status/:site", getStatusOne);
+router.get("/status/:site", verifyToken, getStatusOne);
 
 //Obtener los ultimos 10 logs
 /**
@@ -191,6 +191,6 @@ router.get("/status/:site", getStatusOne);
  *      500:
  *        description: Internal server error
  */
-router.get("/:id/history", getMonitorHistory);
+router.get("/:id/history", verifyToken, getMonitorHistory);
 
 export default router;

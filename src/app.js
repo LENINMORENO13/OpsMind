@@ -14,6 +14,10 @@ console.log("Started on: ", getFormattedDate());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/", (req, res) => {
+  res.redirect("/api-docs");
+});
+
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use("/api/v1/monitors", routes);
