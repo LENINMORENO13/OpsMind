@@ -24,3 +24,35 @@ export async function openIncident(monitorId: number) {
     throw new Error("Error opening incident");
   }
 }
+
+export async function resolveIncident(monitorId: number) {
+  try {
+    const incidentExisting = await prisma.incident.findFirst({
+      where: {
+        monitorId,
+        status: "OPEN",
+      },
+    });
+
+    if (!incidentExisting) {
+      throw new Error("No hay incidente abierto para este monitor");
+    }
+
+    const now = new Date();
+    const totalMinutesDown = Math.round(
+      (now.getTime() - incidentExisting.startedAt.getTime()) / 60000,
+    );
+
+    const updateIncident = await prisma.incident.update({
+      where: { id: incidentExisting.id },
+      data: {
+        status: "RESOLVED",
+        resolvedAt: now,
+        downtime: totalMinutesDown,
+      },
+    });
+    return updateIncident;
+  } catch (error) {
+    throw new Error("Error al actualizar el incidente", { cause: error });
+  }
+}
