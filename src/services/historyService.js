@@ -2,6 +2,7 @@ import prisma from "../lib/prisma.js";
 import { analyzeIncident } from "./aiServices.js";
 import { analyzeStatus } from "./analyzer.js";
 import { check } from "./checker.js";
+import { openIncident, resolveIncident } from "./incident.service.js";
 
 export const save = async (
   monitorId,
@@ -67,32 +68,13 @@ export const executeMonitorCheck = async (monitor) => {
     );
 
     if (analysisResult.trend === "DROP_DETECTED") {
-      console.log(
-        `Alerta: DROP_DETECTED en ${monitor.name}. Consultando a Gemini...`,
-      );
-      const errorDetails =
-        analysisResult.error ||
-        analysisResult.details ||
-        "Timeout or without response";
-
-      const aiDiagnosis = await analyzeIncident(
-        monitor.name,
-        monitor.url,
-        errorDetails,
-      );
-
-      await prisma.aIInsight.create({
-        data: {
-          monitorId: monitor.id,
-          analysis: aiDiagnosis.causa_probable,
-          suggestion: aiDiagnosis.accion_recomendada,
-          criticality: analysisResult.state === "DOWN" ? "CRITICAL" : "HIGH",
-        },
-      });
-      console.log(
-        `Successful AI diagnosis for ${monitor.name}`,
-      );
+      await openIncident(monitor.id);
     }
+
+    if (analysisResult.trend === "RECOVERED") {
+      await resolveIncident(monitor.id);
+    }
+    
     return savedLog;
   } catch (error) {
     console.error(`Error executing monitor check for ${monitor.name}:`, error);

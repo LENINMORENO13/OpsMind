@@ -35,7 +35,7 @@ export async function resolveIncident(monitorId: number) {
     });
 
     if (!incidentExisting) {
-      throw new Error("No hay incidente abierto para este monitor");
+      throw new Error("There is no open incident for this monitor.");
     }
 
     const now = new Date();
@@ -53,6 +53,6 @@ export async function resolveIncident(monitorId: number) {
     });
     return updateIncident;
   } catch (error) {
-    throw new Error("Error al actualizar el incidente", { cause: error });
+    throw new Error("Error updating the incident", { cause: error });
   }
 }
