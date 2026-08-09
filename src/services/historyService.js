@@ -74,7 +74,7 @@ export const executeMonitorCheck = async (monitor) => {
     if (analysisResult.trend === "RECOVERED") {
       await resolveIncident(monitor.id);
     }
-    
+
     return savedLog;
   } catch (error) {
     console.error(`Error executing monitor check for ${monitor.name}:`, error);

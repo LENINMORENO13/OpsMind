@@ -25,7 +25,7 @@ export async function openIncident(monitorId: number) {
   }
 }
 
-export async function resolveIncident(monitorId: number) {
+export async function resolvedIncident(monitorId: number) {
   try {
     const incidentExisting = await prisma.incident.findFirst({
       where: {
