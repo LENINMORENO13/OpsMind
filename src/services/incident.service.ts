@@ -1,6 +1,13 @@
 import prisma from "../lib/prisma.js";
+import emitter from "../events/emitter.js";
 
-export async function openIncident(monitorId: number) {
+export async function openIncident(
+  monitorId: number,
+  monitorName: string,
+  monitorUrl: string,
+  errorDetails: string,
+  state: string,
+) {
   try {
     const incidentExisting = await prisma.incident.findFirst({
       where: {
@@ -19,6 +26,13 @@ export async function openIncident(monitorId: number) {
       },
     });
 
+    emitter.emit("incident-opened", {
+      incidentId: newIncident.id,
+      monitorId,
+      name: monitorName,
+      url: monitorUrl,
+      errorDetails: errorDetails,
+    });
     return newIncident;
   } catch (error) {
     throw new Error("Error opening incident");

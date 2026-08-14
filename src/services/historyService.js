@@ -1,5 +1,4 @@
 import prisma from "../lib/prisma.js";
-import { analyzeIncident } from "./aiServices.js";
 import { analyzeStatus } from "./analyzer.js";
 import { check } from "./checker.js";
 import { openIncident, resolveIncident } from "./incident.service.js";
@@ -67,8 +66,18 @@ export const executeMonitorCheck = async (monitor) => {
       currentCheck.error,
     );
 
+    const errorDetails =
+      analysisResult.error ||
+      analysisResult.details ||
+      "Timeout or without response";
+
     if (analysisResult.trend === "DROP_DETECTED") {
-      await openIncident(monitor.id);
+      await openIncident(
+        monitor.id,
+        monitor.name,
+        monitor.url,
+        errorDetails,
+      );
     }
 
     if (analysisResult.trend === "RECOVERED") {

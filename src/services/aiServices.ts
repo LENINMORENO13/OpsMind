@@ -1,15 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import prisma from "../lib/prisma.js";
+import { CriticalityLevel } from "@prisma/client";
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export interface AIDiagnosis {
+  causa_probable: string;
+  accion_recomendada: string;
+  nivel_criticidad: CriticalityLevel;
+}
 
 export const analyzeIncident = async (
-  monitorName,
-  url,
-  errorDetails,
-  retries = 3,
-) => {
+  monitorName: string,
+  url: string,
+  errorDetails: string,
+  retries: number = 3,
+): Promise<AIDiagnosis> => {
   // 1. Inicialización con el nuevo SDK oficial de Google
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
   try {
     const prompt = `
       Eres un Ingeniero Site Reliability (SRE) Senior diagnosticando una alerta de monitoreo.
@@ -42,17 +50,28 @@ export const analyzeIncident = async (
               description:
                 "El comando, log o servicio exacto que el equipo debe revisar primero para solucionarlo.",
             },
+            nivel_criticidad: {
+              type: Type.STRING,
+              enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+              description:
+                "LOW: Alertas menores. MEDIUM: Degradación leve. HIGH: Timeouts o lentitud grave. CRITICAL: Caída total o Error 500.",
+            },
           },
-          required: ["causa_probable", "accion_recomendada"],
+          required: [
+            "causa_probable",
+            "accion_recomendada",
+            "nivel_criticidad",
+          ],
         },
       },
     });
 
     // 3. El output viene limpio de Markdown gracias al MimeType, permitiendo un parseo directo y seguro
-    return JSON.parse(response.text);
+    return JSON.parse(response.text!) as AIDiagnosis;
   } catch (error) {
     // 4. Estrategia de resiliencia: captura códigos de saturación (429/503) para aplicar reintentos recursivos
-    const errorString = JSON.stringify(error) || error.message || "";
+    const err = error as Error;
+    const errorString = JSON.stringify(error) || err.message || "";
     const isRetryable =
       errorString.includes("503") ||
       errorString.includes("UNAVAILABLE") ||
@@ -67,10 +86,35 @@ export const analyzeIncident = async (
       return analyzeIncident(monitorName, url, errorDetails, retries - 1);
     }
 
-    console.error("Error interno en aiService:", error.message || error);
+    console.error("Error interno en aiService:", err.message || error);
     return {
       causa_probable: "Análisis de IA no disponible temporalmente.",
       accion_recomendada: "Revisar los logs del contenedor manualmente.",
+      nivel_criticidad: CriticalityLevel.CRITICAL,
     };
   }
+};
+
+export const processIncidentInsight = async (payload: {
+  incidentId: number;
+  monitorId: number;
+  name: string;
+  url: string;
+  errorDetails: string;
+}) => {
+  const aiDiagnosis = await analyzeIncident(
+    payload.name,
+    payload.url,
+    payload.errorDetails,
+  );
+
+  await prisma.aIInsight.create({
+    data: {
+      incidentId: payload.incidentId,
+      analysis: aiDiagnosis.causa_probable,
+      suggestion: aiDiagnosis.accion_recomendada,
+      criticality: aiDiagnosis.nivel_criticidad,
+    },
+  });
+  console.log(`Insight guardado exitosamente para el monitor ${payload.name}`);
 };

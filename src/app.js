@@ -5,6 +5,7 @@ import { startCronJobs } from "./services/scheduler.js";
 import { swaggerSpec } from "./config/swagger.js";
 import swaggerUI from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes.js";
+import './services/notification.service.js'
 
 const app = express();
 
