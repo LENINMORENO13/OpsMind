@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { analyzeStatus } from "./analyzer.js";
 import { check } from "./checker.js";
-import { openIncident, resolveIncident } from "./incident.service.js";
+import { openIncident, resolvedIncident } from "./incident.service.js";
 
 export const save = async (
   monitorId,
@@ -81,7 +81,7 @@ export const executeMonitorCheck = async (monitor) => {
     }
 
     if (analysisResult.trend === "RECOVERED") {
-      await resolveIncident(monitor.id);
+      await resolvedIncident(monitor.id);
     }
 
     return savedLog;
