@@ -20,6 +20,14 @@ export const getOpenIncidents = async (
             url: true,
           },
         },
+        aiInsight: {
+          select: {
+            analysis: true,
+            suggestion: true,
+            criticality: true,
+            createdAt: true,
+          },
+        },
       },
     });
     res.status(200).json({
@@ -40,12 +48,15 @@ export const getResolvedIncidents = async (
   res: Response,
 ): Promise<void> => {
   const { monitorId } = req.params;
-  const idConvert = Number(monitorId  );
+  const idConvert = Number(monitorId);
   try {
     const incidents = await prisma.incident.findMany({
       where: {
         monitorId: idConvert,
         status: "RESOLVED",
+      },
+      include: {
+        aiInsight: true,
       },
       orderBy: {
         startedAt: "desc",
