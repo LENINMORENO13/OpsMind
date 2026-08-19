@@ -4,7 +4,7 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test jest --detectOpenHandles",
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit",
     "start": "tsx src/app.js",
     "dev": "tsx watch src/app.js",
     "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage"
@@ -33,12 +33,15 @@
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.1",
     "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "prisma": "^7.6.0",
     "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"

@@ -6,7 +6,11 @@ describe("API de Monitores - Endpoints de Integración", () => {
   let token;
 
   beforeAll(async () => {
+    if (prisma.incident) await prisma.incident.deleteMany();
+
     await prisma.monitor.deleteMany();
+
+    await prisma.user.deleteMany();
 
     await request(app).post("/api/v1/auth/register").send({
       email: "pepito@email.com",

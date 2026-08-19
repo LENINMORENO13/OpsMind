@@ -1,6 +1,9 @@
 import express from "express";
-// import verifyToken from "../middlewares/authMiddleware.js"
-import { getOpenIncidents, getResolvedIncidents } from "../controllers/incidentController.js";
+import { verifyToken } from "../middlewares/authMiddleware.js";
+import {
+  getOpenIncidents,
+  getResolvedIncidents,
+} from "../controllers/incidentController.js";
 
 const router = express.Router();
 
@@ -18,8 +21,7 @@ const router = express.Router();
  *      500:
  *        description: Internal server error
  */
-router.get("/active", getOpenIncidents);
-
+router.get("/active", verifyToken, getOpenIncidents);
 
 /**
  * @openapi
@@ -43,7 +45,6 @@ router.get("/active", getOpenIncidents);
  *       500:
  *         description: Internal server error
  */
-router.get("/monitor/:monitorId/resolved", getResolvedIncidents);
-
+router.get("/monitor/:monitorId/resolved", verifyToken, getResolvedIncidents);
 
 export default router;
