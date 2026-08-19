@@ -15,7 +15,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   api:
-    build: .  
+    build: .
     container_name: opsmind-api
     restart: always
     ports:
@@ -25,7 +25,8 @@ services:
     environment:
       JWT_SECRET: "mi_secreto_super_bloqueado_2026"
       DATABASE_URL: "postgresql://lenin_dev:password123@db:5432/opsmind_db?schema=public"
-      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      DIRECT_URL: "postgresql://lenin_dev:password123@db:5432/opsmind_db?schema=public"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     
 volumes:
   db_data:
