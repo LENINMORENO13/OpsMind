@@ -18,8 +18,8 @@ model Monitor {
   updatedAt     DateTime      @updatedAt
 
   // Relaciones
-  logs     Log[]
-  insights AIInsight[]
+  logs      Log[]
+  incidents Incident[]
 }
 
 // 2. Historial de Monitoreo (Para análisis de tendencias)
@@ -45,18 +45,56 @@ model AIInsight {
   criticality CriticalityLevel
   createdAt   DateTime         @default(now())
 
-  // Relación con Monitor
-  monitorId Int
-  monitor   Monitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  // Relación con Incident
+  incidentId Int     @unique
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 }
 
-// 4. Capa de Datos
+// 4. Ciclo de Vida del Incidente
+model Incident {
+   id           Int             @id @default(autoincrement())
+   status       IncidentStatus  @default(OPEN)
+   startedAt    DateTime        @default(now())
+   resolvedAt   DateTime?       // Nulo hasta que el servicio se recupere
+   downtime     Int?            // Minutos totales de la caida
+
+   // Relacion a que monitor pertenece
+   monitorId    Int
+   monitor      Monitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  // Relacion a IAInsights
+  aiInsight   AIInsight?
+
+  //Referencia al ResolutionLog
+  resolutionLog  ResolutionLog?
+}
+
+// 5. Registro de soluciones humanas
+model ResolutionLog {
+  id          Int      @id @default(autoincrement())
+  rootCause   String   @db.Text 
+  actionTaken String   @db.Text 
+  createdAt   DateTime @default(now())
+
+  // Relación 1 a 1 con el Incidente
+  incidentId  Int      @unique
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  // Relación con el Usuario que resolvió el incidente
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// 6. Capa de Datos
 model User {
    id          Int           @id @default(autoincrement())
    email       String        @unique
    password    String
    createdAt   DateTime      @default(now())
    updatedAt   DateTime      @updatedAt
+
+   //Un usuerio puede registrar multiples resoluciones de incidentes
+   resolutions ResolutionLog[]
 }
 
 // --- Enums para estandarizar estados ---
@@ -80,4 +118,10 @@ enum CriticalityLevel {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  RESOLVED
+  IGNORED
 }

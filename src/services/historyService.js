@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
-import { analyzeIncident } from "./aiServices.js";
 import { analyzeStatus } from "./analyzer.js";
 import { check } from "./checker.js";
+import { openIncident, resolvedIncident } from "./incident.service.js";
 
 export const save = async (
   monitorId,
@@ -66,33 +66,24 @@ export const executeMonitorCheck = async (monitor) => {
       currentCheck.error,
     );
 
-    if (analysisResult.trend === "DROP_DETECTED") {
-      console.log(
-        `Alerta: DROP_DETECTED en ${monitor.name}. Consultando a Gemini...`,
-      );
-      const errorDetails =
-        analysisResult.error ||
-        analysisResult.details ||
-        "Timeout or without response";
+    const errorDetails =
+      analysisResult.error ||
+      analysisResult.details ||
+      "Timeout or without response";
 
-      const aiDiagnosis = await analyzeIncident(
+    if (analysisResult.trend === "DROP_DETECTED") {
+      await openIncident(
+        monitor.id,
         monitor.name,
         monitor.url,
         errorDetails,
       );
-
-      await prisma.aIInsight.create({
-        data: {
-          monitorId: monitor.id,
-          analysis: aiDiagnosis.causa_probable,
-          suggestion: aiDiagnosis.accion_recomendada,
-          criticality: analysisResult.state === "DOWN" ? "CRITICAL" : "HIGH",
-        },
-      });
-      console.log(
-        `Successful AI diagnosis for ${monitor.name}`,
-      );
     }
+
+    if (analysisResult.trend === "RECOVERED") {
+      await resolvedIncident(monitor.id);
+    }
+
     return savedLog;
   } catch (error) {
     console.error(`Error executing monitor check for ${monitor.name}:`, error);

@@ -59,8 +59,8 @@ export const getMonitors = async (req, res) => {
       success: false,
       error: "Internal server error",
     });
-  }
-};
+  };
+  }   
 
 // --- ACTUALIZAR MONITOR  ---
 export const updateMonitors = async (req, res) => {

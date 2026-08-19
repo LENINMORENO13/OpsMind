@@ -5,6 +5,8 @@ import { startCronJobs } from "./services/scheduler.js";
 import { swaggerSpec } from "./config/swagger.js";
 import swaggerUI from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes.js";
+import incidentRoutes from "./routes/incidentsRoutes.js"
+import './services/notification.service.js'
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 app.use("/api/v1/monitors", routes);
 
 app.use("/api/v1/auth", authRoutes);
+
+app.use("/api/v1/incidents", incidentRoutes);
 
 if (process.env.NODE_ENV !== "test") {
   const PORT = process.env.PORT || 3000;
