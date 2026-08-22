@@ -1,15 +1,16 @@
 import prisma from "../lib/prisma.js";
-import { analyzeStatus } from "./analyzer.js";
-import { check } from "./checker.js";
+import { analyzeStatus } from "./analyzer.service.js";
+import { check } from "./checker.service.js";
 import { openIncident, resolvedIncident } from "./incident.service.js";
+import type { Monitor, ServiceStatus, TrendStatus } from "@prisma/client";
 
 export const save = async (
-  monitorId,
-  status,
-  state,
-  trend,
-  responseTime,
-  error = null,
+  monitorId: number,
+  status: number,
+  state: ServiceStatus,
+  trend: TrendStatus,
+  responseTime: number,
+  error: string | null = null,
 ) => {
   try {
     const newLog = await prisma.log.create({
@@ -30,7 +31,7 @@ export const save = async (
   }
 };
 
-export const getHistory = async (id) => {
+export const getHistory = async (id: number) => {
   return prisma.log.findMany({
     where: { monitorId: id },
     orderBy: {
@@ -40,7 +41,7 @@ export const getHistory = async (id) => {
   });
 };
 
-export const getLastRecord = async (id) => {
+export const getLastRecord = async (id: number) => {
   return prisma.log.findFirst({
     where: {
       monitorId: id,
@@ -51,7 +52,7 @@ export const getLastRecord = async (id) => {
   });
 };
 
-export const executeMonitorCheck = async (monitor) => {
+export const executeMonitorCheck = async (monitor: Monitor) => {
   try {
     const lastRecord = await getLastRecord(monitor.id);
     const currentCheck = await check(monitor.url);
@@ -72,19 +73,14 @@ export const executeMonitorCheck = async (monitor) => {
       "Timeout or without response";
 
     if (analysisResult.trend === "DROP_DETECTED") {
-      await openIncident(
-        monitor.id,
-        monitor.name,
-        monitor.url,
-        errorDetails,
-      );
+      await openIncident(monitor.id, monitor.name, monitor.url, errorDetails);
     }
 
     if (analysisResult.trend === "RECOVERED") {
       await resolvedIncident(monitor.id);
     }
 
-    return savedLog;
+    return { ...savedLog, message: errorDetails };
   } catch (error) {
     console.error(`Error executing monitor check for ${monitor.name}:`, error);
     throw error;

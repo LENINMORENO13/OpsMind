@@ -3,7 +3,7 @@ import app from "../src/app.js";
 import prisma from "../src/lib/prisma.js";
 
 describe("API de Monitores - Endpoints de Integración", () => {
-  let token;
+  let token: string;
 
   beforeAll(async () => {
     if (prisma.incident) await prisma.incident.deleteMany();
@@ -69,7 +69,7 @@ describe("API de Monitores - Endpoints de Integración", () => {
       });
 
       expect(monitorGuardado).not.toBeNull();
-      expect(monitorGuardado.name).toBe("Google DNS");
+      expect(monitorGuardado!.name).toBe("Google DNS");
     });
 
     it('Debería rechazar la creación si falta la propiedad "url" (HTTP 400)', async () => {

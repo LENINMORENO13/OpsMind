@@ -1,6 +1,20 @@
 import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
-export const verifyToken = async (req, res, next) => {
+export interface CustomJwtPayload {
+  id: string;
+  email: string;
+}
+
+export interface AunthenticatedRequest extends Request {
+  user?: CustomJwtPayload;
+}
+
+export const verifyToken = async (
+  req: AunthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
@@ -13,7 +27,10 @@ export const verifyToken = async (req, res, next) => {
   const token = header.split(" ")[1];
 
   try {
-    const verify = jwt.verify(token, process.env.JWT_SECRET);
+    const verify = jwt.verify(
+      token,
+      process.env.JWT_SECRET!,
+    ) as CustomJwtPayload;
 
     req.user = verify;
 

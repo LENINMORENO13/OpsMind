@@ -1,8 +1,8 @@
 import prisma from "../lib/prisma.js";
 import cron from "node-cron";
-import { executeMonitorCheck } from "./historyService.js";
+import { executeMonitorCheck } from "./history.service.js";
 
-export const startCronJobs = () => {
+export const startCronJobs = (): void => {
   cron.schedule("*/5 * * * *", async () => {
     console.log("Starting automatic monitor checks...");
 
@@ -14,7 +14,8 @@ export const startCronJobs = () => {
 
           console.log(`Check complete for: ${monitor.name}`);
         } catch (error) {
-          console.error(`Error checking ${monitor.name}:`, error.message);
+          const err = error as Error
+          console.error(`Error checking ${monitor.name}:`, err.message);
         }
       }
       console.log("Automatic monitor check cycle finished.");

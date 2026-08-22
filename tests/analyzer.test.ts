@@ -1,4 +1,5 @@
-import { analyzeStatus } from "../src/services/analyzer";
+import { analyzeStatus } from "../src/services/analyzer.service.js";
+import { ServiceStatus } from "@prisma/client";
 
 describe("Servicio Analizador de Estados", () => {
   it("Debería retornar STABLE y UP si todo está perfecto", () => {
@@ -10,7 +11,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "UP" };
+    const lastRecord = { state: ServiceStatus.UP};
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);
@@ -29,7 +30,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "UP" };
+    const lastRecord = { state: ServiceStatus.UP };
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);
@@ -48,7 +49,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "UP" };
+    const lastRecord = { state: ServiceStatus.UP };
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);
@@ -67,7 +68,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "DOWN" };
+    const lastRecord = { state: ServiceStatus.DOWN };
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);
@@ -86,7 +87,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "DOWN" };
+    const lastRecord = { state: ServiceStatus.DOWN };
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);
@@ -124,7 +125,7 @@ describe("Servicio Analizador de Estados", () => {
       url: "test.com",
       error: null,
     };
-    const lastRecord = { state: "DEGRADED" };
+    const lastRecord = { state: ServiceStatus.DEGRADED};
 
     // 2. ACT
     const result = analyzeStatus(currentCheck, lastRecord);

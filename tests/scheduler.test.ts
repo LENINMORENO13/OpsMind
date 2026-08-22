@@ -1,9 +1,9 @@
-import prisma from "../src/lib/prisma";
-import { executeMonitorCheck } from "../src/services/historyService.js";
-import { startCronJobs } from "../src/services/scheduler.js";
+import prisma from "../src/lib/prisma.js";
+import { executeMonitorCheck } from "../src/services/history.service.js";
+import { startCronJobs } from "../src/services/scheduler.service.js";
 
 // Variable global para capturar la función que node-cron ejecutará internamente
-let mockSavedCallback;
+let mockSavedCallback: () => Promise<void>;
 
 // --- JEST MOCKS ---
 jest.mock("node-cron", () => ({
@@ -18,9 +18,12 @@ jest.mock("../src/lib/prisma", () => ({
   },
 }));
 
-jest.mock("../src/services/historyService.js", () => ({
+jest.mock("../src/services/history.service.js", () => ({
   executeMonitorCheck: jest.fn(),
 }));
+
+const mockedFindMany = prisma.monitor.findMany as jest.Mock
+const mockedExecuteMonitorCheck = executeMonitorCheck as jest.Mock
 
 // --- TEST SUITE ---
 describe("Servicio de Cron / Scheduler", () => {
@@ -30,7 +33,7 @@ describe("Servicio de Cron / Scheduler", () => {
 
   it("Debería ejecutar con éxito el chequeo para todos los monitores activos (Camino Feliz)", async () => {
     // 1. ARRANGE: Simulamos que la base de datos retorna dos monitores activos
-    prisma.monitor.findMany.mockResolvedValue([
+    mockedFindMany.mockResolvedValue([
       { id: 1, name: "App 1" },
       { id: 2, name: "App 2" },
     ]);
@@ -46,12 +49,12 @@ describe("Servicio de Cron / Scheduler", () => {
 
   it("Debería continuar evaluando el resto de monitores si uno de ellos falla", async () => {
     // 1. ARRANGE: Configuramos los monitores y forzamos a que el primero falle
-    prisma.monitor.findMany.mockResolvedValue([
+    mockedFindMany.mockResolvedValue([
       { id: 1, name: "App 1" },
       { id: 2, name: "App 2" },
     ]);
-    
-    executeMonitorCheck
+
+    mockedExecuteMonitorCheck
       .mockRejectedValueOnce(new Error("Error simulado de red"))
       .mockResolvedValueOnce(true);
 
@@ -66,7 +69,7 @@ describe("Servicio de Cron / Scheduler", () => {
 
   it("Debería manejar un error crítico si la base de datos falla al buscar los monitores", async () => {
     // 1. ARRANGE: Simulamos un colapso total en la conexión de PostgreSQL
-    prisma.monitor.findMany.mockRejectedValue(
+    mockedFindMany.mockRejectedValue(
       new Error("Database connection lost"),
     );
 

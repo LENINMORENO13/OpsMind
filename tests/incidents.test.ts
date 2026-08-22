@@ -1,14 +1,14 @@
 import prisma from "../src/lib/prisma.js";
 import request from "supertest";
 import app from "../src/app.js";
-import { processIncidentInsight } from "../src/services/aiServices.js";
+import { processIncidentInsight } from "../src/services/ai.service.js";
 import { openIncident } from "../src/services/incident.service.js";
 
 let token: string;
 let monitorId: number;
 
 // Mock del servicio de IA con el nombre de función correcto
-jest.mock("../src/services/aiServices.js", () => ({
+jest.mock("../src/services/ai.service.js", () => ({
   processIncidentInsight: jest.fn(),
 }));
 
@@ -65,7 +65,6 @@ describe("API de Incidentes - Suite de Integración", () => {
         "Servicio de Autenticación",
         "https://auth.miservicio.com/health",
         "Connection timeout at port 5432",
-        "DROP_DETECTED"
       );
 
       // Tiempo para el listener asíncrono del EventEmitter
@@ -98,7 +97,6 @@ describe("API de Incidentes - Suite de Integración", () => {
         "Servicio de Autenticación",
         "https://auth.miservicio.com/health",
         "Timeout 1",
-        "DROP_DETECTED"
       );
 
       jest.clearAllMocks();
@@ -108,7 +106,6 @@ describe("API de Incidentes - Suite de Integración", () => {
         "Servicio de Autenticación",
         "https://auth.miservicio.com/health",
         "Timeout 2",
-        "DROP_DETECTED"
       );
 
       expect(secondIncident.id).toBe(firstIncident.id);
