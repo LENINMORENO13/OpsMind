@@ -1,8 +1,17 @@
 import bcrypt from "bcryptjs";
 import prisma from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
+import type { Request, Response } from "express";
 
-export const register = async (req, res) => {
+export interface RegisterDTO {
+  email: string;
+  password: string;
+}
+
+export const register = async (
+  req: Request<{}, {}, RegisterDTO>,
+  res: Response,
+) => {
   const { email, password } = req.body;
   try {
     const userExists = await prisma.user.findUnique({
@@ -23,7 +32,7 @@ export const register = async (req, res) => {
         password: hashedPassword,
       },
     });
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: "User created successfully",
       data: {
@@ -32,15 +41,19 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error creating user:", error);
-    return res.status(500).json({
+    const err = error as Error;
+    console.error("Error creating user:", err);
+    res.status(500).json({
       success: false,
       error: "Failed to create user",
     });
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (
+  req: Request<{}, {}, RegisterDTO>,
+  res: Response,
+) => {
   const { email, password } = req.body;
   try {
     const user = await prisma.user.findUnique({
@@ -65,7 +78,7 @@ export const login = async (req, res) => {
         id: user.id,
         email: user.email,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET!,
       { expiresIn: "1h" },
     );
 
@@ -74,7 +87,8 @@ export const login = async (req, res) => {
       data: token,
     });
   } catch (error) {
-    console.error(error);
+    const err = error as Error;
+    console.error(err);
     return res.status(500).json({
       success: false,
       error: "Internal server error",

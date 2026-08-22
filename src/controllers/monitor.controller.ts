@@ -1,8 +1,26 @@
 import prisma from "../lib/prisma.js";
-import { getHistory, executeMonitorCheck } from "../services/historyService.js";
+import { getHistory, executeMonitorCheck } from "../services/history.service.js";
+import type {ParamsDictionary} from 'express-serve-static-core'
+import type {Request, Response} from 'express'
+
+export interface MonitorDTO {
+  name: string;
+  url: string;
+}
+
+export interface MonitorParams extends ParamsDictionary {
+  id: string;
+}
+
+export interface SiteParams extends ParamsDictionary {
+  site: string;
+}
 
 // --- CREAR MONITOR  ---
-export const createMonitors = async (req, res) => {
+export const createMonitors = async (
+  req: Request<{}, {}, MonitorDTO>,
+  res: Response,
+) => {
   const { name, url } = req.body;
 
   // Validación básica de campos requeridos
@@ -37,7 +55,8 @@ export const createMonitors = async (req, res) => {
       data: newMonitor,
     });
   } catch (error) {
-    console.error("Error creating monitor:", error);
+    const err = error as Error;
+    console.error("Error creating monitor:", err.message);
     return res.status(500).json({
       success: false,
       error: "Failed to create monitor",
@@ -46,7 +65,7 @@ export const createMonitors = async (req, res) => {
 };
 
 // --- LISTAR MONITORES  ---
-export const getMonitors = async (req, res) => {
+export const getMonitors = async (req: Request, res: Response) => {
   try {
     const monitors = await prisma.monitor.findMany();
     return res.status(200).json({
@@ -54,16 +73,20 @@ export const getMonitors = async (req, res) => {
       data: monitors,
     });
   } catch (error) {
-    console.error("Error fetching monitors:", error);
+    const err = error as Error;
+    console.error("Error fetching monitors:", err.message);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
     });
-  };
-  }   
+  }
+};
 
 // --- ACTUALIZAR MONITOR  ---
-export const updateMonitors = async (req, res) => {
+export const updateMonitors = async (
+  req: Request<MonitorParams, {}, MonitorDTO>,
+  res: Response,
+) => {
   const { id } = req.params;
   const { url, name } = req.body;
   const idConvert = parseInt(id);
@@ -104,7 +127,8 @@ export const updateMonitors = async (req, res) => {
       data: monitor,
     });
   } catch (error) {
-    console.error("Error updating monitor:", error);
+    const err = error as Error;
+    console.error("Error updating monitor:", err.message);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -113,7 +137,10 @@ export const updateMonitors = async (req, res) => {
 };
 
 // --- ELIMINAR MONITOR  ---
-export const deleteMonitors = async (req, res) => {
+export const deleteMonitors = async (
+  req: Request<MonitorParams>,
+  res: Response,
+) => {
   const { id } = req.params;
   const idConvert = parseInt(id);
 
@@ -146,7 +173,8 @@ export const deleteMonitors = async (req, res) => {
       data: monitor,
     });
   } catch (error) {
-    console.error("Error deleting monitor:", error);
+    const err = error as Error;
+    console.error("Error deleting monitor:", err.message);
     return res.status(500).json({
       success: false,
       error: "Failed to delete monitor",
@@ -155,7 +183,7 @@ export const deleteMonitors = async (req, res) => {
 };
 
 // --- CHEQUEO GENERAL EN TIEMPO REAL---
-export const getStatus = async (req, res) => {
+export const getStatus = async (req: Request, res: Response) => {
   try {
     const monitors = await prisma.monitor.findMany();
     const results = [];
@@ -179,7 +207,8 @@ export const getStatus = async (req, res) => {
       data: results,
     });
   } catch (error) {
-    console.error("Error in getStatus execution loop:", error);
+    const err = error as Error;
+    console.error("Error in getStatus execution loop:", err.message);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -188,14 +217,14 @@ export const getStatus = async (req, res) => {
 };
 
 // --- CHEQUEO DE UN SITIO INDIVIDUAL POR NOMBRE ---
-export const getStatusOne = async (req, res) => {
+export const getStatusOne = async (req: Request<SiteParams>, res: Response) => {
   const { site } = req.params;
   try {
     const targetUrl = await prisma.monitor.findFirst({
       where: {
         name: {
           equals: site,
-          mode: "insensitive", 
+          mode: "insensitive",
         },
       },
     });
@@ -213,7 +242,11 @@ export const getStatusOne = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error(`Error processing health check for site ${site}:`, error);
+    const err = error as Error;
+    console.error(
+      `Error processing health check for site ${site}:`,
+      err.message,
+    );
     return res.status(500).json({
       success: false,
       error: "Error processing request",
@@ -222,7 +255,10 @@ export const getStatusOne = async (req, res) => {
 };
 
 // --- HISTORIAL DE UN MONITOR ---
-export const getMonitorHistory = async (req, res) => {
+export const getMonitorHistory = async (
+  req: Request<MonitorParams>,
+  res: Response,
+) => {
   const { id } = req.params;
   const idConvert = parseInt(id);
 
@@ -252,7 +288,8 @@ export const getMonitorHistory = async (req, res) => {
       data: history,
     });
   } catch (error) {
-    console.error(`Error fetching history for monitor ${id}:`, error);
+    const err = error as Error;
+    console.error(`Error fetching history for monitor ${id}:`, err.message);
     return res.status(500).json({
       success: false,
       error: "Internal server error",

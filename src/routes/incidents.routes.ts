@@ -1,9 +1,9 @@
 import express from "express";
-import { verifyToken } from "../middlewares/authMiddleware.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 import {
   getOpenIncidents,
   getResolvedIncidents,
-} from "../controllers/incidentController.js";
+} from "../controllers/incident.controller.js";
 
 const router = express.Router();
 

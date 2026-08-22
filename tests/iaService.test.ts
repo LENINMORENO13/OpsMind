@@ -1,4 +1,4 @@
-import { analyzeIncident } from "../src/services/aiServices.js";
+import { analyzeIncident } from "../src/services/ai.service.js";
 
 // Variable global para controlar las respuestas simuladas del modelo de IA
 const mockGenerateContent = jest.fn();
@@ -76,7 +76,7 @@ describe("Servicio de IA - analyzeIncident", () => {
 
     // 3. ASSERT: Comprobamos que el sistema devuelva el mensaje controlado de error
     expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
-    expect(response.accion_recommended || response.accion_recomendada).toBe("Revisar los logs del contenedor manualmente.");
+    expect(response.accion_recomendada || response.accion_recomendada).toBe("Revisar los logs del contenedor manualmente.");
   });
 
   it("Debería manejar un error de parseo si la IA devuelve un JSON inválido", async () => {
@@ -95,7 +95,7 @@ describe("Servicio de IA - analyzeIncident", () => {
 
     // 3. ASSERT: El JSON.parse fallará internamente, activando la respuesta segura por defecto
     expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
-    expect(response.accion_recommended || response.accion_recomendada).toBe("Revisar los logs del contenedor manualmente.");
+    expect(response.accion_recomendada || response.accion_recomendada).toBe("Revisar los logs del contenedor manualmente.");
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
 });

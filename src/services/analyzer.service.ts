@@ -3,7 +3,7 @@ import { ServiceStatus, TrendStatus } from "@prisma/client";
 export interface CurrentCheck {
   url: string;
   online: boolean;
-  status: string;
+  status: number;
   responseTime: number;
   error: string | null;
 }
@@ -98,16 +98,15 @@ export const analyzeStatus = (
 
   let currentTrend = TREND_MATRIX[previousState][currentState];
 
-  const statusCodeNumber = Number(currentCheck.status);
 
-  const statusInfo = STATUS_CODE[statusCodeNumber] || {
+  const statusInfo = STATUS_CODE[currentCheck.status] || {
     message: "Unknown code",
     details: `The code was received ${currentCheck.status}.`,
   };
 
   return {
     url: currentCheck.url,
-    status: statusCodeNumber,
+    status: currentCheck.status,
     message: statusInfo.message,
     details: statusInfo.details,
     trend: currentTrend,
