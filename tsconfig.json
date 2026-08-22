@@ -3,7 +3,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "es2022",
-    "types": ["node", "jest"],
+    "types": ["node"],
 
     /* Soporte para Migración Progresiva (JS + TS) */
     "allowJs": true,
