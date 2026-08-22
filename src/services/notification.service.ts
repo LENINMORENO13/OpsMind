@@ -1,5 +1,5 @@
 import emitter from "../events/emitter.js";
-import { processIncidentInsight } from "./aiServices.js";
+import { processIncidentInsight } from "./ai.service.js";
 
 emitter.on("incident-opened", async (payload) => {
   try {

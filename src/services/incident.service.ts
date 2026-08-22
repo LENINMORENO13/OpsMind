@@ -6,7 +6,6 @@ export async function openIncident(
   monitorName: string,
   monitorUrl: string,
   errorDetails: string,
-  state: string,
 ) {
   try {
     const incidentExisting = await prisma.incident.findFirst({
