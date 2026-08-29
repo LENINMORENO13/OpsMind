@@ -1,5 +1,7 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { validateParams } from "../middlewares/validator.middleware.js";
+import { monitorIdSchema } from "../schemas/incident.schemas.js";
 import {
   getOpenIncidents,
   getResolvedIncidents,
@@ -45,6 +47,6 @@ router.get("/active", verifyToken, getOpenIncidents);
  *       500:
  *         description: Internal server error
  */
-router.get("/monitor/:monitorId/resolved", verifyToken, getResolvedIncidents);
+router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorIdSchema), getResolvedIncidents);
 
 export default router;

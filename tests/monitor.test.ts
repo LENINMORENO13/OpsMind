@@ -144,8 +144,7 @@ describe("API de Monitores - Endpoints de Integración", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("Invalid ID format");
+      expect(response.body.message).toBe("Validation error");
     });
 
     it("Debería retornar HTTP 404 si se intenta borrar un monitor que no existe", async () => {
