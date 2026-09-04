@@ -57,6 +57,7 @@ model Incident {
    startedAt    DateTime        @default(now())
    resolvedAt   DateTime?       // Nulo hasta que el servicio se recupere
    downtime     Int?            // Minutos totales de la caida
+   errorDetails String?         // Error que disparó el incidente
 
    // Relacion a que monitor pertenece
    monitorId    Int

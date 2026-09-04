@@ -22,6 +22,7 @@ export async function openIncident(
     const newIncident = await prisma.incident.create({
       data: {
         monitorId,
+        errorDetails,
       },
     });
 
@@ -67,5 +68,32 @@ export async function resolvedIncident(monitorId: number) {
     return updateIncident;
   } catch (error) {
     throw new Error("Error updating the incident", { cause: error });
+  }
+}
+
+export async function getRecentIncidentsContext(monitorId: number) {
+  try {
+    return await prisma.incident.findMany({
+      where: {
+        monitorId,
+        status: "RESOLVED",
+      },
+      take: 5,
+      orderBy: {
+        startedAt: "desc",
+      },
+      select: {
+        errorDetails: true,
+        downtime: true,
+        aiInsight: {
+          select: {
+            analysis: true,
+            suggestion: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    throw new Error("Error retrieving recent incidents", { cause: error });
   }
 }

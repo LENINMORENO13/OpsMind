@@ -4,11 +4,13 @@
   "type": "module",
   "main": "dist/app.js",
   "scripts": {
-    "build": "tsc",
-    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
-    "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage"
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit",
+    "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "typecheck:build": "tsc -p tsconfig.build.json --noEmit"
   },
   "keywords": [],
   "author": "",

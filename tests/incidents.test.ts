@@ -23,12 +23,12 @@ describe("API de Incidentes - Suite de Integración", () => {
 
     // 2. Autenticación
     await request(app).post("/api/v1/auth/register").send({
-      email: "pepito@email.com",
+      email: "incident-user@email.com",
       password: "ops123password",
     });
 
     const loginRequest = await request(app).post("/api/v1/auth/login").send({
-      email: "pepito@email.com",
+      email: "incident-user@email.com",
       password: "ops123password",
     });
 
@@ -87,8 +87,9 @@ describe("API de Incidentes - Suite de Integración", () => {
         where: { id: incident.id },
       });
 
-        expect(updatedIncident).not.toBeNull();
+      expect(updatedIncident).not.toBeNull();
       expect(updatedIncident?.status).toBe("OPEN");
+      expect(updatedIncident?.errorDetails).toBe("Connection timeout at port 5432");
     });
 
     it("Debería retornar el incidente existente sin duplicar ni reemitir si ya está OPEN", async () => {

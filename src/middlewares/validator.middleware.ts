@@ -9,6 +9,7 @@ export const validateSchema =
     } catch (error) {
       const err = error as ZodError;
       return res.status(400).json({
+        success: false,
         message: "Validation error",
         errors: err.issues.map((err) => ({
           field: err.path[0],
@@ -26,6 +27,7 @@ export const validateParams =
     } catch (error) {
       const err = error as ZodError;
       return res.status(400).json({
+        success: false,
         message: "Validation error",
         errors: err.issues.map((err) => ({
           field: err.path[0],
