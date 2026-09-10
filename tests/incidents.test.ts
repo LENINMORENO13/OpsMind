@@ -81,6 +81,7 @@ describe("API de Incidentes - Suite de Integración", () => {
         name: "Servicio de Autenticación",
         url: "https://auth.miservicio.com/health",
         errorDetails: "Connection timeout at port 5432",
+        historicalContext: null,
       });
 
       const updatedIncident = await prisma.incident.findUnique({
@@ -99,6 +100,9 @@ describe("API de Incidentes - Suite de Integración", () => {
         "https://auth.miservicio.com/health",
         "Timeout 1",
       );
+
+      // Tiempo para que el listener asíncrono del EventEmitter termine
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       jest.clearAllMocks();
 

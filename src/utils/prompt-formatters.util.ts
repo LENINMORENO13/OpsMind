@@ -19,7 +19,9 @@ const truncateErrorDetails = (errorDetails: string | null): string | null => {
 
 export const formatHistoricalIncidents = (
   incidents: HistoricalIncidentInput[],
-): string => {
+): string | null => {
+  if (incidents.length === 0) return null;
+
   const formatted = incidents.map((incident) => ({
     error_description: truncateErrorDetails(incident.errorDetails),
     downtime_minutes: incident.downtime,

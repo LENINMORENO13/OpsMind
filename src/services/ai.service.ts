@@ -15,6 +15,7 @@ export const analyzeIncident = async (
   url: string,
   errorDetails: string,
   retries: number = 3,
+  historicalContext?: string,
 ): Promise<AIDiagnosis> => {
   // 1. Inicialización con el nuevo SDK oficial de Google
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -22,13 +23,17 @@ export const analyzeIncident = async (
     const prompt = `
       Eres un Ingeniero Site Reliability (SRE) Senior diagnosticando una alerta de monitoreo.
       Un servicio crítico de nuestra infraestructura acaba de reportar una caída o degradación.
-      
-      Detalles del Incidente:
+
+      --- INCIDENTE ACTUAL (ANÁLISIS PRINCIPAL) ---
+      Este es el incidente que DEBES analizar en detalle:
       - Nombre del Servicio: ${monitorName}
       - URL: ${url}
       - Detalles del Error / Excepción: ${errorDetails}
-      
-      Analiza la posible causa de este error y estructura tu diagnóstico de forma técnica y precisa.
+
+      --- INCIDENTES HISTÓRICOS (SOLO CONTEXTO Y REFERENCIA) ---
+      ${historicalContext ?? "Este es un monitor nuevo: no existen incidentes pasados o históricos disponibles como referencia. Analiza el incidente actual sin apoyarte en historial previo."}
+
+      Concentra tu análisis principalmente en el INCIDENTE ACTUAL. Los incidentes históricos se proporcionan únicamente como referencia para detectar patrones o causas recurrentes; NO deben desviar el análisis del incidente actual.
     `;
 
     const response = await ai.models.generateContent({
@@ -83,7 +88,7 @@ export const analyzeIncident = async (
         `Gemini saturado o no disponible (Código detectado). Reintentando en 10s... (${retries} intentos restantes)`,
       );
       await delay(10000);
-      return analyzeIncident(monitorName, url, errorDetails, retries - 1);
+      return analyzeIncident(monitorName, url, errorDetails, retries - 1, historicalContext);
     }
 
     console.error("Error interno en aiService:", err.message || error);
@@ -101,11 +106,14 @@ export const processIncidentInsight = async (payload: {
   name: string;
   url: string;
   errorDetails: string;
+  historicalContext?: string;
 }) => {
   const aiDiagnosis = await analyzeIncident(
     payload.name,
     payload.url,
     payload.errorDetails,
+    3,
+    payload.historicalContext,
   );
 
   await prisma.aIInsight.create({
