@@ -83,6 +83,7 @@ export async function getRecentIncidentsContext(monitorId: number) {
         startedAt: "desc",
       },
       select: {
+        id: true,
         errorDetails: true,
         downtime: true,
         aiInsight: {

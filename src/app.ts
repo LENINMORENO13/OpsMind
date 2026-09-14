@@ -9,6 +9,7 @@ import incidentRoutes from "./routes/incidents.routes.js";
 import "./services/notification.service.js";
 import type { Request, Response } from "express";
 
+
 const app = express();
 
 console.log("--- Monitoring System ---");
@@ -21,12 +22,10 @@ app.get("/", (req: Request, res: Response): void => {
   res.redirect("/api-docs");
 });
 
+
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
-
 app.use("/api/v1/monitors", routes);
-
 app.use("/api/v1/auth", authRoutes);
-
 app.use("/api/v1/incidents", incidentRoutes);
 
 if (process.env.NODE_ENV !== "test") {

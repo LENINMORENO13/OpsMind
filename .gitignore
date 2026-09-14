@@ -5,3 +5,7 @@ node_modules/
 coverage/
 docs/
 dist/
+
+# Postman workspace local files
+postman/
+.postman/

@@ -1,7 +1,10 @@
 const MAX_ERROR_DETAILS_LENGTH = 500;
 const TRUNCATION_SUFFIX = "...";
+const NO_AI_ANALYSIS_MESSAGE = "No se generó análisis de IA para este incidente.";
+const NO_AI_SUGGESTION_MESSAGE = "Sin recomendación técnica disponible.";
 
 interface HistoricalIncidentInput {
+  id: number;
   errorDetails: string | null;
   downtime: number | null;
   aiInsight: {
@@ -23,10 +26,11 @@ export const formatHistoricalIncidents = (
   if (incidents.length === 0) return null;
 
   const formatted = incidents.map((incident) => ({
+    id: incident.id,
     error_description: truncateErrorDetails(incident.errorDetails),
     downtime_minutes: incident.downtime,
-    ai_analysis: incident.aiInsight?.analysis ?? null,
-    ai_suggestion: incident.aiInsight?.suggestion ?? null,
+    ai_analysis: incident.aiInsight?.analysis ?? NO_AI_ANALYSIS_MESSAGE,
+    ai_suggestion: incident.aiInsight?.suggestion ?? NO_AI_SUGGESTION_MESSAGE,
   }));
   return JSON.stringify(formatted);
 };

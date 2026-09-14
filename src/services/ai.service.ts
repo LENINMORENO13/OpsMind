@@ -8,6 +8,7 @@ export interface AIDiagnosis {
   causa_probable: string;
   accion_recomendada: string;
   nivel_criticidad: CriticalityLevel;
+  historicalAnalysis: string;
 }
 
 export const analyzeIncident = async (
@@ -22,19 +23,33 @@ export const analyzeIncident = async (
   try {
     const prompt = `
       Eres un Ingeniero Site Reliability (SRE) Senior diagnosticando una alerta de monitoreo.
-      Un servicio crítico de nuestra infraestructura acaba de reportar una caída o degradación.
+      Un servicio de nuestra infraestructura acaba de reportar una caída o degradación.
 
-      --- INCIDENTE ACTUAL (ANÁLISIS PRINCIPAL) ---
-      Este es el incidente que DEBES analizar en detalle:
-      - Nombre del Servicio: ${monitorName}
+      --- INCIDENTE ACTUAL ---
+      Analiza principalmente este incidente:
+      - Servicio: ${monitorName}
       - URL: ${url}
-      - Detalles del Error / Excepción: ${errorDetails}
+      - Error / Excepción: ${errorDetails}
 
-      --- INCIDENTES HISTÓRICOS (SOLO CONTEXTO Y REFERENCIA) ---
-      ${historicalContext ?? "Este es un monitor nuevo: no existen incidentes pasados o históricos disponibles como referencia. Analiza el incidente actual sin apoyarte en historial previo."}
+      --- INCIDENTES HISTÓRICOS (CONTEXTO) ---
+      ${historicalContext ?? "No existen incidentes históricos disponibles. Basa el diagnóstico en el incidente actual y conocimiento general de infraestructura."}
 
-      Concentra tu análisis principalmente en el INCIDENTE ACTUAL. Los incidentes históricos se proporcionan únicamente como referencia para detectar patrones o causas recurrentes; NO deben desviar el análisis del incidente actual.
-    `;
+      --- REGLAS ---
+      1. El incidente actual es la fuente principal del diagnóstico.
+      2. Usa los históricos solo si aportan evidencia relevante al incidente actual.
+      3. Compartir únicamente el mismo código o mensaje de error NO implica que exista una causa o patrón recurrente.
+      4. No inventes información ni IDs de incidentes.
+      5. No menciones históricos que no aporten información útil.
+
+      --- historicalAnalysis ---
+      Indica de dónde proviene el diagnóstico:
+      - Si un histórico fue relevante, menciona su ID y qué información aportó.
+      - Si varios fueron relevantes, menciona sus IDs y la relación encontrada.
+      - Si ninguno fue relevante, indica que el diagnóstico se basa en el incidente actual y conocimiento general de infraestructura.
+      - Evita frases vagas como "es un patrón recurrente" sin indicar qué incidentes lo sustentan.
+
+      Realiza un diagnóstico técnico, claro y conciso.
+`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-lite",
@@ -59,13 +74,23 @@ export const analyzeIncident = async (
               type: Type.STRING,
               enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
               description:
-                "LOW: Alertas menores. MEDIUM: Degradación leve. HIGH: Timeouts o lentitud grave. CRITICAL: Caída total o Error 500.",
+                "LOW: Impacto menor sin afectar funciones importantes. " +
+                "MEDIUM: Degradación o fallo parcial con impacto limitado. " +
+                "HIGH: Fallo o degradación significativa de una función importante. " +
+                "CRITICAL: Servicio completamente caído, dependencia crítica no disponible " +
+                "o impacto generalizado. Un error 500 puede ser crítico, pero no es requisito.",
+            },
+            historicalAnalysis: {
+              type: Type.STRING,
+              description:
+                "Indica de forma explícita el origen del diagnóstico. Si utilizaste uno o más incidentes históricos, menciona sus IDs y explica brevemente qué información del incidente anterior fue relevante. Si ningún incidente histórico aportó información relevante, indica que el diagnóstico se basa en el incidente actual y conocimiento general de infraestructura. No afirmes que existe un patrón recurrente sin mencionar los incidentes que lo sustentan.",
             },
           },
           required: [
             "causa_probable",
             "accion_recomendada",
             "nivel_criticidad",
+            "historicalAnalysis",
           ],
         },
       },
@@ -88,7 +113,13 @@ export const analyzeIncident = async (
         `Gemini saturado o no disponible (Código detectado). Reintentando en 10s... (${retries} intentos restantes)`,
       );
       await delay(10000);
-      return analyzeIncident(monitorName, url, errorDetails, retries - 1, historicalContext);
+      return analyzeIncident(
+        monitorName,
+        url,
+        errorDetails,
+        retries - 1,
+        historicalContext,
+      );
     }
 
     console.error("Error interno en aiService:", err.message || error);
@@ -96,6 +127,8 @@ export const analyzeIncident = async (
       causa_probable: "Análisis de IA no disponible temporalmente.",
       accion_recomendada: "Revisar los logs del contenedor manualmente.",
       nivel_criticidad: CriticalityLevel.CRITICAL,
+      historicalAnalysis:
+        "No disponible debido a fallo temporal en el servicio de IA",
     };
   }
 };
@@ -122,6 +155,7 @@ export const processIncidentInsight = async (payload: {
       analysis: aiDiagnosis.causa_probable,
       suggestion: aiDiagnosis.accion_recomendada,
       criticality: aiDiagnosis.nivel_criticidad,
+      historicalAnalysis: aiDiagnosis.historicalAnalysis,
     },
   });
   console.log(`Insight guardado exitosamente para el monitor ${payload.name}`);
