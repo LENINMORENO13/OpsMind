@@ -39,11 +39,12 @@ model Log {
 
 // 3. Capa de Inteligencia
 model AIInsight {
-  id          Int              @id @default(autoincrement())
-  analysis    String           @db.Text // Conclusión de la IA sobre la falla
-  suggestion  String?          @db.Text // Recomendación técnica de la IA
-  criticality CriticalityLevel
-  createdAt   DateTime         @default(now())
+  id                Int              @id @default(autoincrement())
+  analysis          String           @db.Text // Conclusión de la IA sobre la falla
+  suggestion        String?          @db.Text // Recomendación técnica de la IA
+  criticality       CriticalityLevel
+  historicalAnalysis String?         @db.Text // Explica si el diagnóstico usó incidentes previos como referencia o conocimiento general
+  createdAt         DateTime         @default(now())
 
   // Relación con Incident
   incidentId Int     @unique
