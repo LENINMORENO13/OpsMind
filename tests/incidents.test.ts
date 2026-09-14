@@ -2,7 +2,7 @@ import prisma from "../src/lib/prisma.js";
 import request from "supertest";
 import app from "../src/app.js";
 import { processIncidentInsight } from "../src/services/ai.service.js";
-import { openIncident } from "../src/services/incident.service.js";
+import { openIncident, resolvedIncident } from "../src/services/incident.service.js";
 
 let token: string;
 let monitorId: number;
@@ -183,6 +183,37 @@ describe("API de Incidentes - Suite de Integración", () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].status).toBe("RESOLVED");
       expect(response.body.data[0].downtime).toBe(10);
+    });
+  });
+
+  // --- BLOQUE 4: TRANSICIÓN OPEN -> RESOLVED (resolvedIncident) ---
+  describe("resolvedIncident - Transición de estado", () => {
+    let incidentId: number;
+
+    beforeEach(async () => {
+      await prisma.incident.deleteMany();
+      const created = await prisma.incident.create({
+        data: {
+          monitorId: monitorId,
+          status: "OPEN",
+          startedAt: new Date(Date.now() - 15 * 60 * 1000), // 15 min de downtime
+        },
+      });
+      incidentId = created.id;
+    });
+
+    it("Debería cambiar el estado a RESOLVED, establecer resolvedAt y calcular downtime", async () => {
+      const resolved = await resolvedIncident(monitorId);
+
+      expect(resolved.status).toBe("RESOLVED");
+      expect(resolved.resolvedAt).not.toBeNull();
+      expect(resolved.downtime).not.toBeNull();
+      expect(resolved.downtime!).toBeGreaterThan(0);
+    });
+
+    it("Debería lanzar error si no hay incidente OPEN para el monitor", async () => {
+      await prisma.incident.deleteMany();
+      await expect(resolvedIncident(monitorId)).rejects.toThrow();
     });
   });
 });

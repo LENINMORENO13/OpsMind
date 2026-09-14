@@ -98,4 +98,122 @@ describe("Servicio de IA - analyzeIncident", () => {
     expect(response.accion_recomendada || response.accion_recomendada).toBe("Revisar los logs del contenedor manualmente.");
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
+
+  // --- TESTS DE RESILIENCIA: Códigos de saturación (429/503/UNAVAILABLE/RESOURCE_EXHAUSTED) ---
+  // Se usan retries=0 para evitar el delay de 10s y aislar la lógica de detección de retryables.
+
+  it("Debería reconocer error 429 como retryable y devolver fallback sin reintentar (retries=0)", async () => {
+    mockGenerateContent.mockRejectedValue(new Error("429 Resource exhausted"));
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      0,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería reconocer error 503 como retryable y devolver fallback sin reintentar (retries=0)", async () => {
+    mockGenerateContent.mockRejectedValue(new Error("503 Service Unavailable"));
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      0,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería reconocer error UNAVAILABLE como retryable y devolver fallback sin reintentar (retries=0)", async () => {
+    mockGenerateContent.mockRejectedValue(new Error("UNAVAILABLE: backend connection lost"));
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      0,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería reconocer error RESOURCE_EXHAUSTED como retryable y devolver fallback sin reintentar (retries=0)", async () => {
+    mockGenerateContent.mockRejectedValue(new Error("RESOURCE_EXHAUSTED: quota exceeded"));
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      0,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería incluir el contexto histórico formateado en el prompt cuando se recibe historicalContext", async () => {
+    // 1. ARRANGE
+    const mockFakeResponse = {
+      text: JSON.stringify({
+        causa_probable: "El DNS no resolvió el host.",
+        accion_recomendada: "Revisar el registro DNS.",
+      }),
+    };
+    mockGenerateContent.mockResolvedValue(mockFakeResponse);
+
+    // 2. ACT
+    await analyzeIncident(
+      "Servicio de Autenticación",
+      "https://auth.miservicio.com/health",
+      "getaddrinfo ENOTFOUND",
+      0,
+      '[{"id": 15, "error_description": "getaddrinfo ENOTFOUND", "ai_analysis": "Causa recurrente", "ai_suggestion": "Revisar DNS"}]',
+    );
+
+    // 3. ASSERT: El JSON con el id del histórico debe llegar al contenido del prompt
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining("15"),
+      })
+    );
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining("ai_analysis"),
+      })
+    );
+  });
+
+  it("Debería indicar que no existen incidentes históricos cuando historicalContext es null", async () => {
+    // 1. ARRANGE
+    const mockFakeResponse = {
+      text: JSON.stringify({
+        causa_probable: "Causa de prueba.",
+        accion_recomendada: "Acción de prueba.",
+      }),
+    };
+    mockGenerateContent.mockResolvedValue(mockFakeResponse);
+
+    // 2. ACT
+    await analyzeIncident(
+      "Servicio de Autenticación",
+      "https://auth.miservicio.com/health",
+      "getaddrinfo ENOTFOUND",
+      0,
+      undefined,
+    );
+
+    // 3. ASSERT: El prompt debe comunicar que no hay historial de referencia
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining("No existen incidentes históricos"),
+      })
+    );
+  });
 });
