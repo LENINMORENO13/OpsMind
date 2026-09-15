@@ -1,7 +1,29 @@
 node_modules/
-.env
+
+# Variables de entorno
+.env*
+!.env.example
+
+# Logs
+logs/
 *.log
+*.logs
+
+# Prisma generated files
 /src/generated/prisma
+
+# Test coverage
 coverage/
-docs/
+
+# Build output
 dist/
+
+# Docker Compose local overrides
+docker-compose.override.yml
+
+# Postman workspace local files
+postman/
+.postman/
+
+# Documentation
+docs/

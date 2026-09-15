@@ -25,6 +25,7 @@ export const getOpenIncidents = async (
             analysis: true,
             suggestion: true,
             criticality: true,
+            historicalAnalysis: true,
             createdAt: true,
           },
         },
@@ -47,12 +48,11 @@ export const getResolvedIncidents = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { monitorId } = req.params;
-  const idConvert = Number(monitorId);
+  const { monitorId } = req.params as any;
   try {
     const incidents = await prisma.incident.findMany({
       where: {
-        monitorId: idConvert,
+        monitorId,
         status: "RESOLVED",
       },
       include: {
