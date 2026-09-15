@@ -25,6 +25,7 @@ export const getOpenIncidents = async (
             analysis: true,
             suggestion: true,
             criticality: true,
+            historicalAnalysis: true,
             createdAt: true,
           },
         },
