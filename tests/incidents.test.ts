@@ -2,7 +2,7 @@ import prisma from "../src/lib/prisma.js";
 import request from "supertest";
 import app from "../src/app.js";
 import { processIncidentInsight } from "../src/services/ai.service.js";
-import { openIncident } from "../src/services/incident.service.js";
+import { openIncident, resolvedIncident } from "../src/services/incident.service.js";
 
 let token: string;
 let monitorId: number;
@@ -23,12 +23,12 @@ describe("API de Incidentes - Suite de Integración", () => {
 
     // 2. Autenticación
     await request(app).post("/api/v1/auth/register").send({
-      email: "pepito@email.com",
+      email: "incident-user@email.com",
       password: "ops123password",
     });
 
     const loginRequest = await request(app).post("/api/v1/auth/login").send({
-      email: "pepito@email.com",
+      email: "incident-user@email.com",
       password: "ops123password",
     });
 
@@ -81,14 +81,16 @@ describe("API de Incidentes - Suite de Integración", () => {
         name: "Servicio de Autenticación",
         url: "https://auth.miservicio.com/health",
         errorDetails: "Connection timeout at port 5432",
+        historicalContext: null,
       });
 
       const updatedIncident = await prisma.incident.findUnique({
         where: { id: incident.id },
       });
 
-        expect(updatedIncident).not.toBeNull();
+      expect(updatedIncident).not.toBeNull();
       expect(updatedIncident?.status).toBe("OPEN");
+      expect(updatedIncident?.errorDetails).toBe("Connection timeout at port 5432");
     });
 
     it("Debería retornar el incidente existente sin duplicar ni reemitir si ya está OPEN", async () => {
@@ -98,6 +100,9 @@ describe("API de Incidentes - Suite de Integración", () => {
         "https://auth.miservicio.com/health",
         "Timeout 1",
       );
+
+      // Tiempo para que el listener asíncrono del EventEmitter termine
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       jest.clearAllMocks();
 
@@ -178,6 +183,37 @@ describe("API de Incidentes - Suite de Integración", () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].status).toBe("RESOLVED");
       expect(response.body.data[0].downtime).toBe(10);
+    });
+  });
+
+  // --- BLOQUE 4: TRANSICIÓN OPEN -> RESOLVED (resolvedIncident) ---
+  describe("resolvedIncident - Transición de estado", () => {
+    let incidentId: number;
+
+    beforeEach(async () => {
+      await prisma.incident.deleteMany();
+      const created = await prisma.incident.create({
+        data: {
+          monitorId: monitorId,
+          status: "OPEN",
+          startedAt: new Date(Date.now() - 15 * 60 * 1000), // 15 min de downtime
+        },
+      });
+      incidentId = created.id;
+    });
+
+    it("Debería cambiar el estado a RESOLVED, establecer resolvedAt y calcular downtime", async () => {
+      const resolved = await resolvedIncident(monitorId);
+
+      expect(resolved.status).toBe("RESOLVED");
+      expect(resolved.resolvedAt).not.toBeNull();
+      expect(resolved.downtime).not.toBeNull();
+      expect(resolved.downtime!).toBeGreaterThan(0);
+    });
+
+    it("Debería lanzar error si no hay incidente OPEN para el monitor", async () => {
+      await prisma.incident.deleteMany();
+      await expect(resolvedIncident(monitorId)).rejects.toThrow();
     });
   });
 });

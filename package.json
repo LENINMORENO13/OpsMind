@@ -4,11 +4,13 @@
   "type": "module",
   "main": "dist/app.js",
   "scripts": {
-    "build": "tsc",
-    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
-    "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage"
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit",
+    "test:coverage": "cross-env NODE_ENV=test jest --detectOpenHandles --coverage",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "typecheck:build": "tsc -p tsconfig.build.json --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +30,6 @@
     "pg": "^8.20.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "tsx": "^4.23.12",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -48,6 +49,7 @@
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.2"
   }
 }

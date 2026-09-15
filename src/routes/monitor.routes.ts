@@ -1,6 +1,15 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 import {
+  validateSchema,
+  validateParams,
+} from "../middlewares/validator.middleware.js";
+import {
+  createMonitorSchema,
+  updateMonitorSchema,
+  monitorIdSchema,
+} from "../schemas/monitor.schemas.js";
+import {
   getStatus,
   getStatusOne,
   getMonitors,
@@ -63,7 +72,7 @@ router.get("/", verifyToken, getMonitors);
  *      500:
  *        description: Internal server error
  */
-router.post("/", verifyToken, createMonitors);
+router.post("/", verifyToken, validateSchema(createMonitorSchema), createMonitors);
 
 // Actualizar un monitor (PATCH /api/v1/monitors/:id)
 /**
@@ -99,7 +108,7 @@ router.post("/", verifyToken, createMonitors);
  *      500:
  *        description: Internal server error
  */
-router.patch("/:id", verifyToken, updateMonitors);
+router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchema(updateMonitorSchema), updateMonitors);
 
 // Eliminar un monitor (DELETE /api/v1/monitors/:id)
 /**
@@ -125,7 +134,7 @@ router.patch("/:id", verifyToken, updateMonitors);
  *      500:
  *        description: Internal server error
  */
-router.delete("/:id", verifyToken, deleteMonitors);
+router.delete("/:id", verifyToken, validateParams(monitorIdSchema), deleteMonitors);
 
 // --- RUTAS DE ESTADO/CHECKER ---
 
@@ -191,6 +200,6 @@ router.get("/status/:site", verifyToken, getStatusOne);
  *      500:
  *        description: Internal server error
  */
-router.get("/:id/history", verifyToken, getMonitorHistory);
+router.get("/:id/history", verifyToken, validateParams(monitorIdSchema), getMonitorHistory);
 
 export default router;

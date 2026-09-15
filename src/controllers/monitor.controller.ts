@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { getHistory, executeMonitorCheck } from "../services/history.service.js";
-import type {ParamsDictionary} from 'express-serve-static-core'
-import type {Request, Response} from 'express'
+import type { ParamsDictionary } from "express-serve-static-core";
+import type { Request, Response } from "express";
 
 export interface MonitorDTO {
   name: string;
@@ -22,14 +22,6 @@ export const createMonitors = async (
   res: Response,
 ) => {
   const { name, url } = req.body;
-
-  // Validación básica de campos requeridos
-  if (!name || !url) {
-    return res.status(400).json({
-      success: false,
-      error: "The 'name' and 'url' properties are absolutely mandatory.",
-    });
-  }
 
   try {
     // Evita duplicidad de URLs en el sistema
@@ -87,24 +79,15 @@ export const updateMonitors = async (
   req: Request<MonitorParams, {}, MonitorDTO>,
   res: Response,
 ) => {
-  const { id } = req.params;
+  const { id } = req.params as any;
   const { url, name } = req.body;
-  const idConvert = parseInt(id);
-
-  // Validación preventiva del formato del ID numérico
-  if (isNaN(idConvert)) {
-    return res.status(400).json({
-      success: false,
-      error: "Invalid ID format",
-    });
-  }
 
   try {
     // Validamos que el cambio de URL no colisione con el registro de otro monitor diferente
     const duplicate = await prisma.monitor.findFirst({
       where: {
         url: url,
-        NOT: { id: idConvert },
+        NOT: { id },
       },
     });
 
@@ -117,7 +100,7 @@ export const updateMonitors = async (
     }
 
     const monitor = await prisma.monitor.update({
-      where: { id: idConvert },
+      where: { id },
       data: { name, url },
     });
 
@@ -141,19 +124,11 @@ export const deleteMonitors = async (
   req: Request<MonitorParams>,
   res: Response,
 ) => {
-  const { id } = req.params;
-  const idConvert = parseInt(id);
-
-  if (isNaN(idConvert)) {
-    return res.status(400).json({
-      success: false,
-      error: "Invalid ID format",
-    });
-  }
+  const { id } = req.params as any;
 
   try {
     const existingMonitor = await prisma.monitor.findUnique({
-      where: { id: idConvert },
+      where: { id },
     });
 
     if (!existingMonitor) {
@@ -164,7 +139,7 @@ export const deleteMonitors = async (
     }
 
     const monitor = await prisma.monitor.delete({
-      where: { id: idConvert },
+      where: { id },
     });
 
     return res.status(200).json({
@@ -259,19 +234,11 @@ export const getMonitorHistory = async (
   req: Request<MonitorParams>,
   res: Response,
 ) => {
-  const { id } = req.params;
-  const idConvert = parseInt(id);
-
-  if (isNaN(idConvert)) {
-    return res.status(400).json({
-      success: false,
-      error: "Invalid ID format",
-    });
-  }
+  const { id } = req.params as any;
 
   try {
     const monitorExists = await prisma.monitor.findUnique({
-      where: { id: idConvert },
+      where: { id },
     });
 
     if (!monitorExists) {
@@ -281,7 +248,7 @@ export const getMonitorHistory = async (
       });
     }
 
-    const history = await getHistory(idConvert);
+    const history = await getHistory(id);
 
     return res.status(200).json({
       success: true,

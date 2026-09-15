@@ -3,17 +3,15 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "es2022",
-    "types": ["node"],
+    "types": ["node", "jest"],
 
-    /* Soporte para Migración Progresiva (JS + TS) */
     "allowJs": true,
     "checkJs": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
-    /* Previene la sobreescritura de archivos .js */
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "noEmit": false,
 
     "verbatimModuleSyntax": false,
@@ -22,16 +20,5 @@
     "sourceMap": true,
     "strict": true,
     "skipLibCheck": true
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tests/**/*",
-    "**/*.test.ts",
-    "**/*.config.cjs",
-    "**/*.config.js"
-  ]
+  }
 }

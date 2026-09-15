@@ -81,4 +81,55 @@ describe("Servicio de Cron / Scheduler", () => {
     expect(prisma.monitor.findMany).toHaveBeenCalledTimes(1);
     expect(executeMonitorCheck).not.toHaveBeenCalled();
   });
+
+  // --- TESTS DE EXCEPCIONES DE RED ESPECÍFICAS ---
+  // Verifican que el scheduler siga evaluando monitores después de fallos comunes de red.
+
+  it("Debería continuar con el siguiente monitor si executeMonitorCheck lanza ECONNREFUSED", async () => {
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1" },
+      { id: 2, name: "App 2" },
+    ]);
+
+    mockedExecuteMonitorCheck
+      .mockRejectedValueOnce(new Error("connect ECONNREFUSED 127.0.0.1:80"))
+      .mockResolvedValueOnce(true);
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(executeMonitorCheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("Debería continuar con el siguiente monitor si executeMonitorCheck lanza ETIMEDOUT", async () => {
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1" },
+      { id: 2, name: "App 2" },
+    ]);
+
+    mockedExecuteMonitorCheck
+      .mockRejectedValueOnce(new Error("socket ETIMEDOUT"))
+      .mockResolvedValueOnce(true);
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(executeMonitorCheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("Debería continuar con el siguiente monitor si executeMonitorCheck lanza un error de DNS", async () => {
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1" },
+      { id: 2, name: "App 2" },
+    ]);
+
+    mockedExecuteMonitorCheck
+      .mockRejectedValueOnce(new Error("getaddrinfo ENOTFOUND api.midominio.com"))
+      .mockResolvedValueOnce(true);
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(executeMonitorCheck).toHaveBeenCalledTimes(2);
+  });
 });
