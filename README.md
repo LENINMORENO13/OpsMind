@@ -1,15 +1,35 @@
-# 🛡️ OpsMind: Smart Microservice Monitoring
+# 🛡️ OpsMind — Microservice Monitoring & Incident Analysis
 
 ![CI](https://github.com/LENINMORENO13/OpsMind/actions/workflows/ci.yml/badge.svg)
 
-OpsMind es una plataforma de monitoreo y observabilidad de microservicios enfocada en disponibilidad, seguimiento de estados y gestión inteligente de incidentes.
+OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA.
 
-Diseñada bajo arquitectura **API-First**, con workers en segundo plano, autenticación JWT, persistencia de incidentes y análisis operacional mediante IA.
+El proyecto utiliza una API REST, workers en segundo plano, autenticación JWT, PostgreSQL para persistencia y un sistema de incidentes con análisis histórico.
+
+---
+
+# 🎯 ¿Qué hace OpsMind?
+
+OpsMind monitorea periódicamente servicios registrados y registra sus cambios de estado.
+
+Cuando detecta una caída:
+
+1. Se crea un incidente.
+2. Se registra el inicio del incidente.
+3. Se dispara un evento para iniciar el análisis.
+4. Gemini genera un diagnóstico estructurado.
+5. El análisis se guarda junto con el incidente.
+6. Cuando el servicio se recupera, el incidente se marca como resuelto.
+7. Se calcula el tiempo de indisponibilidad.
+8. El incidente queda almacenado para utilizarlo como contexto histórico en futuros análisis.
+
+La IA funciona como una herramienta de análisis complementaria. La detección, creación y resolución de incidentes son responsabilidad del sistema de monitoreo.
 
 ---
 
 # 📚 Tabla de Contenidos
 
+* [¿Qué hace OpsMind?](#-qué-hace-opsmind)
 * [Características](#-características-principales)
 * [Stack](#-stack-tecnológico)
 * [Arquitectura](#-arquitectura-general)
@@ -20,26 +40,26 @@ Diseñada bajo arquitectura **API-First**, con workers en segundo plano, autenti
 * [Testing](#-pruebas-automatizadas)
 * [IA](#-análisis-inteligente-con-ia)
 * [Evolución V1 → V2](#-evolución-v1--v2)
-* [Producción](#-producción-render)
+* [Entorno desplegado](#-entorno-desplegado)
 * [Autor](#-autor)
 
 ---
 
 # ✨ Características Principales
 
-* API-First con respuestas JSON consistentes
-* Seguridad global con JWT
-* Health monitoring engine en tiempo real
+* API REST con respuestas JSON
+* Autenticación mediante JWT
+* Monitoreo periódico de disponibilidad
 * Background workers con `node-cron`
-* Swagger/OpenAPI
-* Arquitectura desacoplada con Prisma
-* PostgreSQL para persistencia
+* Gestión del estado e historial de servicios
+* Persistencia con Prisma y PostgreSQL
+* Swagger/OpenAPI para documentación de la API
 * Contenerización con Docker
-* CI/CD con GitHub Actions
-* Análisis de incidentes con IA (Gemini)
-* Memoria persistente de incidentes
-* Seguimiento de incidentes activos y resueltos
-* Cálculo de downtime
+* Integración continua con GitHub Actions
+* Gestión del ciclo de vida de incidentes
+* Cálculo automático de downtime
+* Análisis de incidentes mediante Gemini
+* Contexto histórico basado en incidentes anteriores
 * Procesamiento de IA desacoplado mediante eventos
 
 ---
@@ -49,6 +69,7 @@ Diseñada bajo arquitectura **API-First**, con workers en segundo plano, autenti
 | Tecnología       | Uso                    |
 | ---------------- | ---------------------- |
 | Node.js          | Runtime                |
+| TypeScript       | Lenguaje               |
 | Express          | API HTTP               |
 | Prisma ORM       | Acceso a datos         |
 | PostgreSQL       | Persistencia           |
@@ -56,9 +77,11 @@ Diseñada bajo arquitectura **API-First**, con workers en segundo plano, autenti
 | Jest + Supertest | Testing                |
 | Swagger UI       | Documentación          |
 | OpenAPI 3.0      | Especificación         |
+| Zod              | Validación de datos    |
+| Axios            | HTTP health checks     |
 | Docker           | Contenedores           |
-| GitHub Actions   | CI/CD                  |
-| Gemini API       | Análisis de incidentes |
+| GitHub Actions   | Continuous Integration |
+| @google/genai    | Integración con Gemini |
 
 ---
 
@@ -130,7 +153,15 @@ La V2 introduce memoria persistente de incidentes y seguimiento de su ciclo de v
 | Método | Endpoint                                 | Descripción                                   |
 | ------ | ---------------------------------------- | --------------------------------------------- |
 | GET    | `/api/v1/incidents/active`               | Incidentes activos con diagnóstico IA         |
-| GET    | `/api/v1/incidents/monitor/:id/resolved` | Historial de incidentes resueltos por monitor |
+| GET    | `/api/v1/incidents/monitor/:monitorId/resolved` | Historial de incidentes resueltos por monitor |
+
+La respuesta de `/api/v1/incidents/active` incluye, en cada `aiInsight`:
+
+* `analysis` — diagnóstico de la IA
+* `suggestion` — recomendación técnica
+* `criticality` — nivel de criticidad
+* `historicalAnalysis` — origen del diagnóstico (incidente actual, histórico(s) relevante(s) o IA no disponible)
+* `createdAt` — timestamp del análisis
 
 ### Fase 1 — Incident Memory
 
@@ -138,7 +169,6 @@ La V2 introduce memoria persistente de incidentes y seguimiento de su ciclo de v
 * Seguimiento de incidentes activos y resueltos
 * Cálculo automático de downtime
 * Diagnóstico mediante IA
-* Registro de resolución humana
 * Procesamiento de IA desacoplado mediante eventos
 
 ### Flujo de incidentes
@@ -209,6 +239,8 @@ cd OpsMind
 cp .env.example .env
 ```
 
+Configura valores reales para `JWT_SECRET` (obligatorio para la autenticación JWT) y `GEMINI_API_KEY` antes de iniciar la aplicación.
+
 ## 3. Docker
 
 ```bash
@@ -235,18 +267,20 @@ npm test
 
 Incluye pruebas para:
 
-* Auth JWT
+* Autenticación JWT
 * CRUD de monitores
-* Validaciones `401 / 400 / 404`
-* Prisma + PostgreSQL
-* Flujo de incidentes
-* Procesamiento de IA
+* Validaciones HTTP (`400`, `401`, `404`)
+* Integración con Prisma y PostgreSQL
+* Flujo de creación y resolución de incidentes
+* Procesamiento del análisis mediante IA
 
 ---
 
 # 🤖 Análisis Inteligente con IA
 
-OpsMind utiliza **Gemini** para analizar incidentes y generar información operacional estructurada.
+OpsMind utiliza Gemini como herramienta de análisis para generar un diagnóstico estructurado a partir de la información del incidente.
+
+El análisis puede incorporar contexto de incidentes históricos, pero el incidente actual permanece como fuente principal del diagnóstico.
 
 El análisis incluye:
 
@@ -254,6 +288,7 @@ El análisis incluye:
 * Causa probable
 * Acción recomendada
 * Nivel de criticidad
+* Análisis histórico (origen del diagnóstico)
 
 La IA se ejecuta de forma desacoplada mediante eventos:
 
@@ -262,11 +297,15 @@ IncidentService
       ↓
 incident-opened
       ↓
+getRecentIncidentsContext (últimos 5 resueltos)
+      ↓
+formatHistoricalIncidents (JSON sanitizado)
+      ↓
 AIService
       ↓
-Gemini
+Gemini (prompt con contexto histórico + reglas)
       ↓
-AIInsight
+AIInsight (analysis, suggestion, criticality, historicalAnalysis)
 ```
 
 El resultado utiliza un esquema estructurado para mantener compatibilidad con el modelo de datos.
@@ -274,6 +313,22 @@ El resultado utiliza un esquema estructurado para mantener compatibilidad con el
 ```bash
 GEMINI_API_KEY=tu_key
 ```
+
+## Reglas de diagnóstico
+
+* El incidente actual es la fuente principal del diagnóstico.
+* Los históricos se usan solo si aportan evidencia relevante.
+* Compartir el mismo código o mensaje de error no implica por sí solo un patrón recurrente.
+* No se inventan IDs ni información no verificada.
+* `historicalAnalysis` explica explícitamente de dónde proviene el diagnóstico.
+
+## Manejo de errores de IA
+
+El servicio de IA realiza reintentos ante errores de comunicación con Gemini: hasta 3 reintentos con el delay configurado por el servicio.
+
+Si Gemini continúa fallando, el servicio cuenta con un mecanismo de fallback para completar el análisis.
+
+De esta forma, un fallo persistente del proveedor de IA no interrumpe el flujo principal de gestión de incidentes.
 
 ---
 
@@ -292,14 +347,14 @@ La primera versión establece la base de monitoreo y observabilidad:
 * [x] Swagger/OpenAPI
 * [x] Docker
 * [x] Testing
-* [x] CI/CD
+* [x] Continuous Integration
 * [x] AI analysis
 
 ---
 
 ## V2 — Incident Intelligence
 
-La segunda versión evoluciona OpsMind desde el monitoreo hacia la **gestión y análisis inteligente de incidentes**.
+La segunda versión amplía OpsMind desde el monitoreo de servicios hacia la gestión de incidentes y el análisis basado en contexto histórico.
 
 ### Fase 1 — Incident Memory ✅
 
@@ -307,22 +362,31 @@ La segunda versión evoluciona OpsMind desde el monitoreo hacia la **gestión y 
 * [x] Ciclo de vida del incidente
 * [x] Cálculo de downtime
 * [x] AIInsight persistente
-* [x] ResolutionLog
 * [x] IA desacoplada por eventos
 * [x] API de incidentes activos y resueltos
 
+### Fase 2 — Pattern Detection ✅
+
+* [x] Recuperación de incidentes históricos resueltos (últimos 5 por monitor)
+* [x] Formateo y sanitización de contexto histórico (prompt-formatters)
+* [x] Integración del contexto histórico en el prompt de Gemini
+* [x] Campo `historicalAnalysis` en el esquema AIInsight
+* [x] Reglas estrictas de diagnóstico (actual es la fuente principal; mismo error ≠ patrón)
+* [x] `historicalAnalysis` expuesto en el endpoint de incidentes activos
+
 ### Próximas fases
 
-Las siguientes fases estarán orientadas a aprovechar la memoria de incidentes para mejorar progresivamente la capacidad de análisis y operación de OpsMind.
+Las siguientes fases están orientadas a ampliar el uso de la información histórica y facilitar el análisis y seguimiento de incidentes.
 
-* **Fase 2 — Pattern Detection**
 * **Fase 3 — Historical Intelligence**
 * **Fase 4 — Operational Recommendations**
 * **Fase 5 — Operational Dashboard**
 
 ---
 
-# 🌐 Producción (Render)
+# 🌐 Entorno desplegado
+
+La API está desplegada en Render y cuenta con documentación Swagger disponible públicamente.
 
 * API: https://opsmind-e07b.onrender.com
 * Docs: https://opsmind-e07b.onrender.com/api-docs
@@ -333,7 +397,7 @@ Las siguientes fases estarán orientadas a aprovechar la memoria de incidentes p
 
 **Lenin Moreno** — Backend Developer
 
-Enfocado en sistemas distribuidos, observabilidad y backend resiliente.
+Proyecto personal enfocado en backend, monitoreo de servicios, gestión de incidentes y exploración de arquitecturas orientadas a eventos.
 
 🛸 **¡Conectemos!**
 
