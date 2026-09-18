@@ -16,6 +16,9 @@ jest.mock("../src/lib/prisma", () => ({
   monitor: {
     findMany: jest.fn(),
   },
+  log: {
+    findFirst: jest.fn(),
+  },
 }));
 
 jest.mock("../src/services/history.service.js", () => ({
@@ -23,12 +26,52 @@ jest.mock("../src/services/history.service.js", () => ({
 }));
 
 const mockedFindMany = prisma.monitor.findMany as jest.Mock
+const mockedLogFindFirst = prisma.log.findFirst as jest.Mock
 const mockedExecuteMonitorCheck = executeMonitorCheck as jest.Mock
 
 // --- TEST SUITE ---
 describe("Servicio de Cron / Scheduler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Por defecto no hay logs previos: todos los monitores están listos para chequear
+    mockedLogFindFirst.mockResolvedValue(null);
+  });
+
+  it("Debería consultar únicamente los monitores activos (isActive)", async () => {
+    mockedFindMany.mockResolvedValue([]);
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(mockedFindMany).toHaveBeenCalledWith({
+      where: { isActive: true },
+    });
+  });
+
+  it("No debería chequear un monitor cuyo checkInterval aún no se ha cumplido", async () => {
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1", isActive: true, checkInterval: 300 },
+    ]);
+    mockedLogFindFirst.mockResolvedValue({ timestamp: new Date() });
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(mockedExecuteMonitorCheck).not.toHaveBeenCalled();
+  });
+
+  it("Debería chequear un monitor cuyo checkInterval ya expiró", async () => {
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1", isActive: true, checkInterval: 300 },
+    ]);
+    mockedLogFindFirst.mockResolvedValue({
+      timestamp: new Date(Date.now() - 10 * 60 * 1000),
+    });
+
+    startCronJobs();
+    await mockSavedCallback();
+
+    expect(mockedExecuteMonitorCheck).toHaveBeenCalledTimes(1);
   });
 
   it("Debería ejecutar con éxito el chequeo para todos los monitores activos (Camino Feliz)", async () => {

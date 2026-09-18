@@ -1,11 +1,15 @@
 import express from "express";
 import { register, login } from "../controllers/auth.controller.js";
 import { validateSchema } from "../middlewares/validator.middleware.js";
+import { authRateLimiter } from "../middlewares/rateLimit.middleware.js";
 import { registerSchema, loginSchema } from "../schemas/auth.schemas.js";
 
 const router = express.Router();
 
 // --- AUTHENTICATION PATHS ---
+
+// Limita intentos de autenticación para mitigar fuerza bruta
+router.use(authRateLimiter);
 
 // Registrar un nuevo usuario (POST /api/v1/auth/register)
 /**

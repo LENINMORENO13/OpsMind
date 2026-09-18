@@ -4,6 +4,46 @@ import { CriticalityLevel } from "@prisma/client";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Detecta saturación de Gemini inspeccionando propiedades reales del error
+// (status/code/response.status/message) en lugar de serializar el objeto Error,
+// ya que JSON.stringify(new Error(...)) produce "{}".
+const RETRYABLE_SIGNALS = [
+  "429",
+  "503",
+  "RESOURCE_EXHAUSTED",
+  "UNAVAILABLE",
+  "RATE_LIMIT",
+];
+
+const isRetryableGeminiError = (error: unknown): boolean => {
+  if (error === null || error === undefined) return false;
+
+  const err = error as {
+    status?: unknown;
+    code?: unknown;
+    message?: unknown;
+    response?: { status?: unknown };
+  };
+
+  const haystack = [
+    err.status,
+    err.code,
+    err.response?.status,
+    err.message,
+  ]
+    .filter((part) => part !== undefined && part !== null)
+    .map((part) => String(part))
+    .join(" ")
+    .toUpperCase();
+
+  return RETRYABLE_SIGNALS.some((signal) => haystack.includes(signal));
+};
+
+const getRetryDelayMs = (): number => {
+  const parsed = Number(process.env.GEMINI_RETRY_DELAY_MS ?? 10000);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 10000;
+};
+
 export interface AIDiagnosis {
   causa_probable: string;
   accion_recomendada: string;
@@ -101,18 +141,14 @@ export const analyzeIncident = async (
   } catch (error) {
     // 4. Estrategia de resiliencia: captura códigos de saturación (429/503) para aplicar reintentos recursivos
     const err = error as Error;
-    const errorString = JSON.stringify(error) || err.message || "";
-    const isRetryable =
-      errorString.includes("503") ||
-      errorString.includes("UNAVAILABLE") ||
-      errorString.includes("429") ||
-      errorString.includes("RESOURCE_EXHAUSTED");
+    const isRetryable = isRetryableGeminiError(error);
 
     if (isRetryable && retries > 0) {
+      const retryDelayMs = getRetryDelayMs();
       console.warn(
-        `Gemini saturado o no disponible (Código detectado). Reintentando en 10s... (${retries} intentos restantes)`,
+        `Gemini saturado o no disponible (Código detectado). Reintentando en ${retryDelayMs}ms... (${retries} intentos restantes)`,
       );
-      await delay(10000);
+      await delay(retryDelayMs);
       return analyzeIncident(
         monitorName,
         url,

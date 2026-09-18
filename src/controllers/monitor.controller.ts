@@ -83,20 +83,34 @@ export const updateMonitors = async (
   const { url, name } = req.body;
 
   try {
-    // Validamos que el cambio de URL no colisione con el registro de otro monitor diferente
-    const duplicate = await prisma.monitor.findFirst({
-      where: {
-        url: url,
-        NOT: { id },
-      },
+    const existingMonitor = await prisma.monitor.findUnique({
+      where: { id },
     });
 
-    if (duplicate) {
-      return res.status(409).json({
+    if (!existingMonitor) {
+      return res.status(404).json({
         success: false,
-        error: "Monitor with this URL already exists",
-        code: "URL_DUPLICATED",
+        error: "Monitor not found",
       });
+    }
+
+    // Solo validamos colisión de URL cuando la petición intenta cambiarla.
+    // Un PATCH parcial (p. ej. solo name) no debe reportar un falso 409.
+    if (url !== undefined) {
+      const duplicate = await prisma.monitor.findFirst({
+        where: {
+          url: url,
+          NOT: { id },
+        },
+      });
+
+      if (duplicate) {
+        return res.status(409).json({
+          success: false,
+          error: "Monitor with this URL already exists",
+          code: "URL_DUPLICATED",
+        });
+      }
     }
 
     const monitor = await prisma.monitor.update({

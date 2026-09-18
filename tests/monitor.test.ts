@@ -86,6 +86,80 @@ describe("API de Monitores - Endpoints de Integración", () => {
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
     });
+
+    it("Debería rechazar la creación con una URL interna como destino SSRF (HTTP 400)", async () => {
+      const response = await request(app)
+        .post("/api/v1/monitors")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          name: "Metadata",
+          url: "http://169.254.169.254/latest/meta-data",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe("PATCH /api/v1/monitors/:id", () => {
+    it("Debería actualizar solo el nombre sin falso 409 aunque existan otros monitores", async () => {
+      const target = await prisma.monitor.create({
+        data: { name: "Target", url: "https://patch-target.com" },
+      });
+      await prisma.monitor.create({
+        data: { name: "Other", url: "https://patch-other.com" },
+      });
+
+      const response = await request(app)
+        .patch(`/api/v1/monitors/${target.id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Target Renombrado" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.name).toBe("Target Renombrado");
+    });
+
+    it("Debería rechazar con 409 si la nueva URL pertenece a otro monitor", async () => {
+      const target = await prisma.monitor.create({
+        data: { name: "T2", url: "https://patch-target2.com" },
+      });
+      const other = await prisma.monitor.create({
+        data: { name: "O2", url: "https://patch-other2.com" },
+      });
+
+      const response = await request(app)
+        .patch(`/api/v1/monitors/${target.id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ url: other.url });
+
+      expect(response.status).toBe(409);
+      expect(response.body.code).toBe("URL_DUPLICATED");
+    });
+
+    it("Debería permitir mantener la misma URL del propio monitor (HTTP 200)", async () => {
+      const target = await prisma.monitor.create({
+        data: { name: "T3", url: "https://patch-target3.com" },
+      });
+
+      const response = await request(app)
+        .patch(`/api/v1/monitors/${target.id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ url: target.url, name: "T3b" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.name).toBe("T3b");
+    });
+
+    it("Debería retornar HTTP 404 si el monitor no existe", async () => {
+      const response = await request(app)
+        .patch("/api/v1/monitors/999999")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Fantasma" });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+    });
   });
 
   describe("GET /api/v1/monitors", () => {

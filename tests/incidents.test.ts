@@ -121,6 +121,32 @@ describe("API de Incidentes - Suite de Integración", () => {
       });
       expect(totalOpen).toBe(1);
     });
+
+    it("Debería garantizar un único incidente OPEN ante llamadas concurrentes", async () => {
+      mockedProcessInsight.mockResolvedValue(undefined);
+
+      const [first, second] = await Promise.all([
+        openIncident(
+          monitorId,
+          "Servicio de Autenticación",
+          "https://auth.miservicio.com/health",
+          "Concurrente 1",
+        ),
+        openIncident(
+          monitorId,
+          "Servicio de Autenticación",
+          "https://auth.miservicio.com/health",
+          "Concurrente 2",
+        ),
+      ]);
+
+      expect(first.id).toBe(second.id);
+
+      const totalOpen = await prisma.incident.count({
+        where: { monitorId, status: "OPEN" },
+      });
+      expect(totalOpen).toBe(1);
+    });
   });
 
   // --- BLOQUE 2: ENDPOINT REST GET /api/v1/incidents/active ---
@@ -205,15 +231,16 @@ describe("API de Incidentes - Suite de Integración", () => {
     it("Debería cambiar el estado a RESOLVED, establecer resolvedAt y calcular downtime", async () => {
       const resolved = await resolvedIncident(monitorId);
 
-      expect(resolved.status).toBe("RESOLVED");
-      expect(resolved.resolvedAt).not.toBeNull();
-      expect(resolved.downtime).not.toBeNull();
-      expect(resolved.downtime!).toBeGreaterThan(0);
+      expect(resolved).not.toBeNull();
+      expect(resolved!.status).toBe("RESOLVED");
+      expect(resolved!.resolvedAt).not.toBeNull();
+      expect(resolved!.downtime).not.toBeNull();
+      expect(resolved!.downtime!).toBeGreaterThan(0);
     });
 
-    it("Debería lanzar error si no hay incidente OPEN para el monitor", async () => {
+    it("Debería retornar null sin lanzar si no hay incidente OPEN para el monitor", async () => {
       await prisma.incident.deleteMany();
-      await expect(resolvedIncident(monitorId)).rejects.toThrow();
+      await expect(resolvedIncident(monitorId)).resolves.toBeNull();
     });
   });
 });

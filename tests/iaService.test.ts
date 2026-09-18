@@ -1,5 +1,8 @@
 import { analyzeIncident } from "../src/services/ai.service.js";
 
+// Evita esperas reales entre reintentos durante las pruebas
+process.env.GEMINI_RETRY_DELAY_MS = "0";
+
 // Variable global para controlar las respuestas simuladas del modelo de IA
 const mockGenerateContent = jest.fn();
 
@@ -155,6 +158,56 @@ describe("Servicio de IA - analyzeIncident", () => {
     );
 
     expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería reintentar cuando el error expone status 503 en un objeto", async () => {
+    mockGenerateContent.mockRejectedValue(
+      Object.assign(new Error("boom"), { status: 503 }),
+    );
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      1,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+  });
+
+  it("Debería reintentar cuando el error expone code UNAVAILABLE", async () => {
+    mockGenerateContent.mockRejectedValue(
+      Object.assign(new Error("backend down"), { code: "UNAVAILABLE" }),
+    );
+
+    const response = await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      1,
+    );
+
+    expect(response.causa_probable).toBe("Análisis de IA no disponible temporalmente.");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+  });
+
+  it("No debería reintentar ante un error no retryable (400 INVALID_ARGUMENT)", async () => {
+    mockGenerateContent.mockRejectedValue(
+      Object.assign(new Error("Bad request"), {
+        status: 400,
+        code: "INVALID_ARGUMENT",
+      }),
+    );
+
+    await analyzeIncident(
+      "Servicio de Pagos",
+      "https://api.pagos.com",
+      "Timeout exception",
+      3,
+    );
+
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
 

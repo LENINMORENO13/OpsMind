@@ -8,17 +8,8 @@ export async function openIncident(
   errorDetails: string,
 ) {
   try {
-    const incidentExisting = await prisma.incident.findFirst({
-      where: {
-        monitorId,
-        status: "OPEN",
-      },
-    });
-
-    if (incidentExisting) {
-      return incidentExisting;
-    }
-
+    // El índice único parcial (Incident_open_unique) garantiza la exclusividad
+    // del estado OPEN incluso bajo llamadas concurrentes.
     const newIncident = await prisma.incident.create({
       data: {
         monitorId,
@@ -35,7 +26,22 @@ export async function openIncident(
     });
     return newIncident;
   } catch (error) {
-    throw new Error("Error opening incident");
+    // Si otro proceso ya abrió el incidente, devolvemos el existente sin
+    // duplicar ni reemitir el análisis de IA.
+    if ((error as { code?: string })?.code === "P2002") {
+      const incidentExisting = await prisma.incident.findFirst({
+        where: {
+          monitorId,
+          status: "OPEN",
+        },
+      });
+
+      if (incidentExisting) {
+        return incidentExisting;
+      }
+    }
+
+    throw new Error("Error opening incident", { cause: error });
   }
 }
 
@@ -48,8 +54,10 @@ export async function resolvedIncident(monitorId: number) {
       },
     });
 
+    // Una recuperación sin incidente OPEN es un no-op válido: no debe romper
+    // el flujo del chequeo (p. ej. primer chequeo en UP o resolución manual).
     if (!incidentExisting) {
-      throw new Error("There is no open incident for this monitor.");
+      return null;
     }
 
     const now = new Date();

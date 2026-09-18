@@ -7,9 +7,25 @@ export const startCronJobs = (): void => {
     console.log("Starting automatic monitor checks...");
 
     try {
-      const monitors = await prisma.monitor.findMany();
+      // isActive decide si el monitor se evalúa; checkInterval, cuándo
+      const monitors = await prisma.monitor.findMany({
+        where: { isActive: true },
+      });
+
       for (const monitor of monitors) {
         try {
+          const lastLog = await prisma.log.findFirst({
+            where: { monitorId: monitor.id },
+            orderBy: { timestamp: "desc" },
+          });
+
+          if (lastLog) {
+            const elapsedMs = Date.now() - lastLog.timestamp.getTime();
+            if (elapsedMs < monitor.checkInterval * 1000) {
+              continue;
+            }
+          }
+
           await executeMonitorCheck(monitor);
 
           console.log(`Check complete for: ${monitor.name}`);
