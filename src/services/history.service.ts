@@ -67,6 +67,12 @@ export const executeMonitorCheck = async (monitor: Monitor) => {
       currentCheck.error,
     );
 
+    // lastStatus refleja siempre el último estado observado del monitor
+    await prisma.monitor.update({
+      where: { id: monitor.id },
+      data: { lastStatus: analysisResult.state },
+    });
+
     const errorDetails =
       analysisResult.error ||
       analysisResult.details ||

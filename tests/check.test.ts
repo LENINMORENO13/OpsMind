@@ -1,5 +1,17 @@
 import axios from "axios";
 import { check } from "../src/services/checker.service.js";
+import { validatePublicHttpUrl } from "../src/utils/ssrf.util.js";
+
+// Aísla la validación SSRF (que resuelve DNS real) del resto de la suite
+jest.mock("../src/utils/ssrf.util.js", () => {
+  const actual = jest.requireActual("../src/utils/ssrf.util.js");
+  return {
+    ...actual,
+    validatePublicHttpUrl: jest.fn(),
+  };
+});
+
+const mockedValidate = jest.mocked(validatePublicHttpUrl);
 
 // Mantener las clases y métodos reales de Axios (como AxiosError e isAxiosError)
 // y mockear únicamente el método .get()
@@ -21,6 +33,12 @@ const mockedAxios = jest.mocked(axios);
 describe("Servicio de Monitoreo - Checker", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedValidate.mockResolvedValue({
+      ok: true,
+      hostname: "mi-sitio.com",
+      address: "93.184.216.34",
+      family: 4,
+    });
   });
 
   it("Debería retornar online: true y status 200 cuando la URL responde correctamente", async () => {
@@ -80,5 +98,22 @@ describe("Servicio de Monitoreo - Checker", () => {
     expect(result.online).toBe(false);
     expect(result.status).toBe(404);
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("Debería rechazar una URL interna (SSRF) sin emitir la petición HTTP", async () => {
+    // 1. ARRANGE: La validación SSRF rechaza el destino (p. ej. metadata/loopback)
+    mockedValidate.mockResolvedValue({
+      ok: false,
+      reason: "URL resolves to a non-public address",
+    });
+
+    // 2. ACT
+    const result = await check("http://169.254.169.254/latest/meta-data");
+
+    // 3. ASSERT
+    expect(result.online).toBe(false);
+    expect(result.status).toBe(0);
+    expect(result.error).toBe("URL resolves to a non-public address");
+    expect(mockedAxios.get).not.toHaveBeenCalled();
   });
 });
