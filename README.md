@@ -58,9 +58,11 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 * Integración continua con GitHub Actions
 * Gestión del ciclo de vida de incidentes
 * Cálculo automático de downtime
+* Registro de soluciones humanas (root cause + acción) por incidente
 * Análisis de incidentes mediante Gemini
-* Contexto histórico basado en incidentes anteriores
+* Contexto histórico basado en incidentes anteriores y soluciones humanas verificadas
 * Procesamiento de IA desacoplado mediante eventos
+* Validación SSRF (solo IPs públicas) al registrar monitores
 
 ---
 
@@ -97,15 +99,22 @@ graph TD
     Services --> Prisma
     Prisma --> DB[(PostgreSQL)]
 
-    Workers[Node-Cron Workers] --> Services
-    Workers -->|DROP_DETECTED| IncidentService
-    Workers -->|RECOVERED| IncidentService
+    Workers[Node-Cron Workers] --> Scheduler[Scheduler Service]
+    Scheduler -->|ventana de intervalo| Checker[Checker Service]
+    Checker -->|HTTP 5s timeout| External[Servicio monitoreado]
+    Checker --> Analyzer[Analyzer TREND_MATRIX]
+    Analyzer -->|Log| Prisma
+    Analyzer -->|DROP_DETECTED| IncidentService
+    Analyzer -->|RECOVERED| IncidentService
 
     IncidentService -->|incident-opened| Emitter[Event Emitter]
-    Emitter -->|async process| AIService[Gemini Analysis]
-    AIService -->|AIInsight| Prisma
+    Emitter -->|async process| AI[Gemini Analysis]
+    AI -->|AIInsight (análisis + sugerencia + criticidad)| Prisma
+    Prisma -->|contexto histórico<br>últimos 5 resueltos + soluciones humanas| AI
 
     IncidentService -->|downtime calculation| Prisma
+    Services -->|POST /incidents/:id/resolve| IncidentService
+    IncidentService -->|ResolutionLog| Prisma
 ```
 
 ---
@@ -156,6 +165,7 @@ La V2 introduce memoria persistente de incidentes y seguimiento de su ciclo de v
 | ------ | ---------------------------------------- | --------------------------------------------- |
 | GET    | `/api/v1/incidents/active`               | Incidentes activos con diagnóstico IA         |
 | GET    | `/api/v1/incidents/monitor/:monitorId/resolved` | Historial de incidentes resueltos por monitor |
+| POST   | `/api/v1/incidents/:id/resolve`          | Registrar solución humana (`rootCause`, `actionTaken`) y cerrar el incidente según el estado del servicio |
 
 La respuesta de `/api/v1/incidents/active` incluye, en cada `aiInsight`:
 
@@ -164,6 +174,16 @@ La respuesta de `/api/v1/incidents/active` incluye, en cada `aiInsight`:
 * `criticality` — nivel de criticidad
 * `historicalAnalysis` — origen del diagnóstico (incidente actual, histórico(s) relevante(s) o IA no disponible)
 * `createdAt` — timestamp del análisis
+
+### Resolución manual de incidentes
+
+`POST /api/v1/incidents/:id/resolve` (autenticado) registra la solución aplicada por un operador. El cierre del incidente depende del estado real del servicio:
+
+* Incidente `OPEN` + monitor sano (`UP`/`DEGRADED`) → se cierra el incidente (`closedNow: true`).
+* Incidente `OPEN` + monitor caído → se registra la solución pero **el incidente permanece abierto** hasta que el servicio se recupere (`RECOVERED`).
+* Incidente `RESOLVED` (recuperado automáticamente) → solo se adjunta el log de la solución registrada.
+
+Errores: `400` (validación), `401` (no autorizado), `404` (incidente inexistente), `409` (ya existe solución registrada para el incidente).
 
 ### Fase 1 — Incident Memory
 
@@ -273,8 +293,13 @@ Incluye pruebas para:
 * CRUD de monitores
 * Validaciones HTTP (`400`, `401`, `404`)
 * Integración con Prisma y PostgreSQL
-* Flujo de creación y resolución de incidentes
-* Procesamiento del análisis mediante IA
+* Flujo de creación y resolución de incidentes (incluye `POST /api/v1/incidents/:id/resolve`)
+* Resolución manual con `ResolutionLog` (`closedNow`, duplicado `409`, incidente inexistente `404`)
+* Análisis mediante IA (`analyzeIncident`, reintentos y fallback)
+* Actualización de estado por tendencias (`TREND_MATRIX`)
+* Protección SSRF y validación de URLs públicas
+* Cadencia programada y throttling por ventana del scheduler
+* Formateo y sanitización del contexto histórico (prompt-formatters)
 
 ---
 
@@ -282,7 +307,7 @@ Incluye pruebas para:
 
 OpsMind utiliza Gemini como herramienta de análisis para generar un diagnóstico estructurado a partir de la información del incidente.
 
-El análisis puede incorporar contexto de incidentes históricos, pero el incidente actual permanece como fuente principal del diagnóstico.
+El análisis puede incorporar contexto de incidentes históricos —incluyendo las soluciones humanas verificadas (`ResolutionLog`) registradas vía `POST /api/v1/incidents/:id/resolve`— pero el incidente actual permanece como fuente principal del diagnóstico.
 
 El análisis incluye:
 
@@ -299,9 +324,9 @@ IncidentService
       ↓
 incident-opened
       ↓
-getRecentIncidentsContext (últimos 5 resueltos)
+getRecentIncidentsContext (últimos 5 resueltos + resolutionLog)
       ↓
-formatHistoricalIncidents (JSON sanitizado)
+formatHistoricalIncidents (JSON sanitizado + human_verified_resolution)
       ↓
 AIService
       ↓
@@ -323,6 +348,9 @@ GEMINI_API_KEY=tu_key
 * Compartir el mismo código o mensaje de error no implica por sí solo un patrón recurrente.
 * No se inventan IDs ni información no verificada.
 * `historicalAnalysis` explica explícitamente de dónde proviene el diagnóstico.
+* Las soluciones humanas verificadas (`human_verified_resolution`) son evidencia de alta confianza acotada a ese incidente y entorno; no son una verdad universal ni deben generalizarse.
+* Está prohibido copiar una solución humana a ciegas: si el incidente actual presenta variaciones significativas (distinto código, causa aparente o escenario), se descarta esa solución y se diagnostica solo con el incidente actual.
+* Si una solución humana se usa o se descarta, `historicalAnalysis` debe justificar explícitamente por qué las condiciones coinciden o difieren.
 
 ## Manejo de errores de IA
 
@@ -376,13 +404,21 @@ La segunda versión amplía OpsMind desde el monitoreo de servicios hacia la ges
 * [x] Reglas estrictas de diagnóstico (actual es la fuente principal; mismo error ≠ patrón)
 * [x] `historicalAnalysis` expuesto en el endpoint de incidentes activos
 
+### Fase 3 — Recommendation Engine & Human-in-the-Loop (HITL) ✅
+
+* [x] Endpoint `POST /api/v1/incidents/:id/resolve` para registrar la solución humana (`rootCause`, `actionTaken`)
+* [x] Modelo `ResolutionLog` (1:1 con el incidente, ligado al usuario que resuelve)
+* [x] Cierre desacoplado del estado del incidente: OPEN + monitor sano → cierra; OPEN + monitor caído → espera `RECOVERED`; RESOLVED → solo adjunta el log
+* [x] Validación de resolución: `404` incidente inexistente y `409` solución ya registrada
+* [x] Soluciones humanas verificadas incorporadas al contexto histórico (`human_verified_resolution`)
+* [x] Reglas defensivas en el prompt: prohibido copiar soluciones humanas a ciegas
+
 ### Próximas fases
 
 Las siguientes fases están orientadas a ampliar el uso de la información histórica y facilitar el análisis y seguimiento de incidentes.
 
-* **Fase 3 — Historical Intelligence**
-* **Fase 4 — Operational Recommendations**
-* **Fase 5 — Operational Dashboard**
+* **Fase 4 — Operational Dashboard**
+* **Fase 5 — AI Engine Continuous Improvement**
 
 ---
 
