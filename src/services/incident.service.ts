@@ -79,6 +79,78 @@ export async function resolvedIncident(monitorId: number) {
   }
 }
 
+export class IncidentNotFoundError extends Error {
+  constructor() {
+    super("Incident not found");
+  }
+}
+
+export class IncidentNotOpenError extends Error {
+  constructor() {
+    super("Incident is not open");
+  }
+}
+
+export async function resolveIncidentWithLog(
+  incidentId: number,
+  userId: number,
+  rootCause: string,
+  actionTaken: string,
+) {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const incident = await tx.incident.findUnique({
+        where: { id: incidentId },
+      });
+
+      if (!incident) {
+        throw new IncidentNotFoundError();
+      }
+
+      if (incident.status !== "OPEN") {
+        throw new IncidentNotOpenError();
+      }
+
+      const now = new Date();
+      const totalMinutesDown = Math.round(
+        (now.getTime() - incident.startedAt.getTime()) / 60000,
+      );
+
+      // La transacción garantiza que la resolución del incidente y el
+      // registro de la solución humana sean atómicos: o se persisten ambos
+      // o ninguno, manteniendo la consistencia de los datos.
+      const [updatedIncident, resolutionLog] = await Promise.all([
+        tx.incident.update({
+          where: { id: incidentId },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: now,
+            downtime: totalMinutesDown,
+          },
+        }),
+        tx.resolutionLog.create({
+          data: {
+            rootCause,
+            actionTaken,
+            userId,
+            incidentId,
+          },
+        }),
+      ]);
+
+      return { incident: updatedIncident, resolutionLog };
+    });
+  } catch (error) {
+    if (
+      error instanceof IncidentNotFoundError ||
+      error instanceof IncidentNotOpenError
+    ) {
+      throw error;
+    } 
+    throw new Error("Error resolving the incident", { cause: error });
+  }
+}
+
 export async function getRecentIncidentsContext(monitorId: number) {
   try {
     return await prisma.incident.findMany({
