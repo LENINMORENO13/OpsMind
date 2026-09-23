@@ -63,7 +63,7 @@ router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorId
  *   post:
  *     tags:
  *       - Incidents
- *     summary: Manually resolve an open incident and record the human solution
+ *     summary: Record the human solution and (if the service is healthy) close the incident
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -72,7 +72,7 @@ router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorId
  *         required: true
  *         schema:
  *           type: integer
- *         description: The ID of the open incident to resolve
+ *         description: The ID of the incident to record the solution for
  *     requestBody:
  *       required: true
  *       content:
@@ -91,7 +91,7 @@ router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorId
  *                 description: Action taken to resolve the incident
  *     responses:
  *       200:
- *         description: Incident resolved successfully
+ *         description: Human solution recorded. closes the incident when it is OPEN and the service is healthy; otherwise the incident closes automatically once the service recovers (RECOVERED). The response data informs closedNow.
  *       400:
  *         description: Validation error
  *       401:
@@ -99,7 +99,7 @@ router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorId
  *       404:
  *         description: Incident not found
  *       409:
- *         description: Incident is not open
+ *         description: A resolution has already been recorded for this incident
  *       500:
  *         description: Internal server error
  */

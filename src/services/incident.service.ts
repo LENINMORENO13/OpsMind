@@ -85,9 +85,9 @@ export class IncidentNotFoundError extends Error {
   }
 }
 
-export class IncidentNotOpenError extends Error {
+export class ResolutionAlreadyRecordedError extends Error {
   constructor() {
-    super("Incident is not open");
+    super("A resolution has already been recorded for this incident");
   }
 }
 
@@ -98,17 +98,28 @@ export async function resolveIncidentWithLog(
   actionTaken: string,
 ) {
   try {
+    // Registra la solución humana una sola vez por incidente (1:1).
+    // El cierre del incidente es independiente de este registro:
+    // - OPEN + monitor sano → cierra el incidente.
+    // - OPEN + monitor caído → permanece OPEN hasta RECOVERED.
+    // - RESOLVED → solo adjunta el log de la solución.
     return await prisma.$transaction(async (tx) => {
       const incident = await tx.incident.findUnique({
         where: { id: incidentId },
+        include: {
+          monitor: { select: { lastStatus: true } },
+        },
       });
 
       if (!incident) {
         throw new IncidentNotFoundError();
       }
 
-      if (incident.status !== "OPEN") {
-        throw new IncidentNotOpenError();
+      const existingLog = await tx.resolutionLog.findUnique({
+        where: { incidentId },
+      });
+      if (existingLog) {
+        throw new ResolutionAlreadyRecordedError();
       }
 
       const now = new Date();
@@ -116,34 +127,47 @@ export async function resolveIncidentWithLog(
         (now.getTime() - incident.startedAt.getTime()) / 60000,
       );
 
-      // La transacción garantiza que la resolución del incidente y el
-      // registro de la solución humana sean atómicos: o se persisten ambos
-      // o ninguno, manteniendo la consistencia de los datos.
-      const [updatedIncident, resolutionLog] = await Promise.all([
-        tx.incident.update({
+      let updatedIncident: {
+        id: number;
+        status: "OPEN" | "RESOLVED" | "IGNORED";
+        resolvedAt: Date | null;
+        downtime: number | null;
+      };
+      let closedNow = false;
+
+      const monitorHealthy =
+        incident.monitor.lastStatus === "UP" ||
+        incident.monitor.lastStatus === "DEGRADED";
+
+      if (incident.status === "OPEN" && monitorHealthy) {
+        updatedIncident = await tx.incident.update({
           where: { id: incidentId },
           data: {
             status: "RESOLVED",
             resolvedAt: now,
             downtime: totalMinutesDown,
           },
-        }),
-        tx.resolutionLog.create({
-          data: {
-            rootCause,
-            actionTaken,
-            userId,
-            incidentId,
-          },
-        }),
-      ]);
+        });
+        closedNow = true;
+      } else {
+        updatedIncident = incident;
+      }
 
-      return { incident: updatedIncident, resolutionLog };
+      const resolutionLog = await tx.resolutionLog.create({
+        data: {
+          rootCause,
+          actionTaken,
+          userId,
+          incidentId,
+        },
+      });
+
+      return { incident: updatedIncident, resolutionLog, closedNow };
     });
   } catch (error) {
     if (
       error instanceof IncidentNotFoundError ||
-      error instanceof IncidentNotOpenError
+      error instanceof ResolutionAlreadyRecordedError
     ) {
       throw error;
     }

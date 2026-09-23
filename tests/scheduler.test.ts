@@ -74,6 +74,29 @@ describe("Servicio de Cron / Scheduler", () => {
     expect(mockedExecuteMonitorCheck).toHaveBeenCalledTimes(1);
   });
 
+  it("Debería chequear si el último log es reciente pero cayó en la ventana anterior de intervalo", async () => {
+    // 1. ARRANGE: Sistema en 00:05:00.100 (ventana 1). Último log 299s antes
+    // (00:00:01, ventana 0): elapsed < checkInterval, pero ventana distinta.
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("1970-01-01T00:05:00.100Z"));
+
+    mockedFindMany.mockResolvedValue([
+      { id: 1, name: "App 1", isActive: true, checkInterval: 300 },
+    ]);
+    mockedLogFindFirst.mockResolvedValue({
+      timestamp: new Date(Date.now() - 299 * 1000),
+    });
+
+    // 2. ACT
+    startCronJobs();
+    await mockSavedCallback();
+
+    // 3. ASSERT: El chequeo no debe quedar atrapado por el desfase de ms
+    expect(mockedExecuteMonitorCheck).toHaveBeenCalledTimes(1);
+
+    jest.useRealTimers();
+  });
+
   it("Debería ejecutar con éxito el chequeo para todos los monitores activos (Camino Feliz)", async () => {
     // 1. ARRANGE: Simulamos que la base de datos retorna dos monitores activos
     mockedFindMany.mockResolvedValue([

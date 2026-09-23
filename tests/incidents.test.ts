@@ -7,7 +7,7 @@ import {
   resolvedIncident,
   resolveIncidentWithLog,
   IncidentNotFoundError,
-  IncidentNotOpenError,
+  ResolutionAlreadyRecordedError,
 } from "../src/services/incident.service.js";
 
 let token: string;
@@ -256,8 +256,8 @@ describe("API de Incidentes - Suite de Integración", () => {
     });
   });
 
-  // --- BLOQUE 5: SERVICIO resolveIncidentWithLog (transacción ACID) ---
-  describe("resolveIncidentWithLog - Transición OPEN -> RESOLVED con ResolutionLog", () => {
+  // --- BLOQUE 5: SERVICIO resolveIncidentWithLog (registro de solución + cierre) ---
+  describe("resolveIncidentWithLog - Registro de solución humana y cierre", () => {
     let incidentId: number;
 
     beforeEach(async () => {
@@ -272,7 +272,12 @@ describe("API de Incidentes - Suite de Integración", () => {
       incidentId = created.id;
     });
 
-    it("Debería resolver el incidente y crear el ResolutionLog en la misma transacción", async () => {
+    it("Debería cerrar el incidente y crear el ResolutionLog si el monitor está sano (lastStatus UP)", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "UP" },
+      });
+
       const result = await resolveIncidentWithLog(
         incidentId,
         userId,
@@ -280,11 +285,8 @@ describe("API de Incidentes - Suite de Integración", () => {
         "Reiniciar el servicio de PostgreSQL",
       );
 
+      expect(result.closedNow).toBe(true);
       expect(result.incident.status).toBe("RESOLVED");
-      expect(result.incident.resolvedAt).not.toBeNull();
-      expect(result.incident.downtime).not.toBeNull();
-      expect(result.incident.downtime!).toBeGreaterThan(0);
-
       expect(result.resolutionLog.rootCause).toBe("Fallo en la base de datos");
       expect(result.resolutionLog.actionTaken).toBe(
         "Reiniciar el servicio de PostgreSQL",
@@ -293,21 +295,68 @@ describe("API de Incidentes - Suite de Integración", () => {
       expect(result.resolutionLog.incidentId).toBe(incidentId);
     });
 
+    it("Debería guardar el log pero dejar el incidente OPEN si el monitor sigue caído (lastStatus DOWN)", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "DOWN" },
+      });
+
+      const result = await resolveIncidentWithLog(
+        incidentId,
+        userId,
+        "Deploy fallido",
+        "Rollback pendiente de aplicar",
+      );
+
+      expect(result.closedNow).toBe(false);
+      expect(result.incident.status).toBe("OPEN");
+
+      const updatedIncident = await prisma.incident.findUnique({
+        where: { id: incidentId },
+      });
+      expect(updatedIncident?.status).toBe("OPEN");
+      expect(updatedIncident?.resolvedAt).toBeNull();
+
+      const log = await prisma.resolutionLog.findUnique({
+        where: { incidentId },
+      });
+      expect(log?.rootCause).toBe("Deploy fallido");
+    });
+
+    it("Debería registrar el log post-mortem aunque el incidente ya se haya recuperado solo (RESOLVED)", async () => {
+      await prisma.incident.update({
+        where: { id: incidentId },
+        data: { status: "RESOLVED", resolvedAt: new Date(), downtime: 10 },
+      });
+
+      const result = await resolveIncidentWithLog(
+        incidentId,
+        userId,
+        "Carga inesperada",
+        "Escalar el balanceador",
+      );
+
+      expect(result.closedNow).toBe(false);
+      expect(result.incident.status).toBe("RESOLVED");
+      expect(result.resolutionLog.actionTaken).toBe("Escalar el balanceador");
+    });
+
+    it("Debería lanzar ResolutionAlreadyRecordedError si el incidente ya tiene una solución registrada", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "DOWN" },
+      });
+      await resolveIncidentWithLog(incidentId, userId, "Causa A", "Acción A");
+
+      await expect(
+        resolveIncidentWithLog(incidentId, userId, "Causa B", "Acción B"),
+      ).rejects.toBeInstanceOf(ResolutionAlreadyRecordedError);
+    });
+
     it("Debería lanzar IncidentNotFoundError si el incidente no existe", async () => {
       await expect(
         resolveIncidentWithLog(99999, userId, "Causa", "Acción"),
       ).rejects.toBeInstanceOf(IncidentNotFoundError);
-    });
-
-    it("Debería lanzar IncidentNotOpenError si el incidente ya está resuelto", async () => {
-      await prisma.incident.update({
-        where: { id: incidentId },
-        data: { status: "RESOLVED", resolvedAt: new Date() },
-      });
-
-      await expect(
-        resolveIncidentWithLog(incidentId, userId, "Causa", "Acción"),
-      ).rejects.toBeInstanceOf(IncidentNotOpenError);
     });
   });
 
@@ -327,7 +376,12 @@ describe("API de Incidentes - Suite de Integración", () => {
       incidentId = created.id;
     });
 
-    it("Debería resolver el incidente y registrar la solución (HTTP 200)", async () => {
+    it("Debería cerrar el incidente y registrar la solución si el monitor está sano (HTTP 200)", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "UP" },
+      });
+
       const response = await request(app)
         .post(`/api/v1/incidents/${incidentId}/resolve`)
         .set("Authorization", `Bearer ${token}`)
@@ -338,6 +392,8 @@ describe("API de Incidentes - Suite de Integración", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe("Incident resolved successfully");
+      expect(response.body.data.closedNow).toBe(true);
 
       const updatedIncident = await prisma.incident.findUnique({
         where: { id: incidentId },
@@ -349,6 +405,81 @@ describe("API de Incidentes - Suite de Integración", () => {
         "Rollback de la versión",
       );
       expect(updatedIncident?.resolutionLog?.userId).toBe(userId);
+    });
+
+    it("Debería guardar la solución pero dejar el incidente OPEN si el monitor sigue caído (HTTP 200)", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "DOWN" },
+      });
+
+      const response = await request(app)
+        .post(`/api/v1/incidents/${incidentId}/resolve`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          rootCause: "Deploy fallido",
+          actionTaken: "Rollback pendiente de aplicar",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe(
+        "Resolution recorded. Incident will close once the service recovers.",
+      );
+      expect(response.body.data.closedNow).toBe(false);
+
+      const updatedIncident = await prisma.incident.findUnique({
+        where: { id: incidentId },
+        include: { resolutionLog: true },
+      });
+      expect(updatedIncident?.status).toBe("OPEN");
+      expect(updatedIncident?.resolutionLog?.actionTaken).toBe(
+        "Rollback pendiente de aplicar",
+      );
+    });
+
+    it("Debería registrar la solución post-mortem si el incidente ya se recuperó solo (HTTP 200)", async () => {
+      await prisma.incident.update({
+        where: { id: incidentId },
+        data: { status: "RESOLVED", resolvedAt: new Date(), downtime: 10 },
+      });
+
+      const response = await request(app)
+        .post(`/api/v1/incidents/${incidentId}/resolve`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          rootCause: "Carga inesperada",
+          actionTaken: "Escalar el balanceador",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe(
+        "Resolution recorded. Incident was already resolved (recovered before logging).",
+      );
+      const log = await prisma.resolutionLog.findUnique({
+        where: { incidentId },
+      });
+      expect(log?.rootCause).toBe("Carga inesperada");
+    });
+
+    it("Debería rechazar con HTTP 409 si ya existe una solución registrada", async () => {
+      await prisma.monitor.update({
+        where: { id: monitorId },
+        data: { lastStatus: "DOWN" },
+      });
+
+      await request(app)
+        .post(`/api/v1/incidents/${incidentId}/resolve`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ rootCause: "Causa", actionTaken: "Acción" });
+
+      const response = await request(app)
+        .post(`/api/v1/incidents/${incidentId}/resolve`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ rootCause: "Causa 2", actionTaken: "Acción 2" });
+
+      expect(response.status).toBe(409);
+      expect(response.body.success).toBe(false);
     });
 
     it("Debería rechazar con HTTP 400 si falta rootCause o actionTaken", async () => {
@@ -382,23 +513,6 @@ describe("API de Incidentes - Suite de Integración", () => {
         });
 
       expect(response.status).toBe(404);
-    });
-
-    it("Debería devolver HTTP 409 si el incidente no está OPEN", async () => {
-      await prisma.incident.update({
-        where: { id: incidentId },
-        data: { status: "RESOLVED", resolvedAt: new Date() },
-      });
-
-      const response = await request(app)
-        .post(`/api/v1/incidents/${incidentId}/resolve`)
-        .set("Authorization", `Bearer ${token}`)
-        .send({
-          rootCause: "Causa",
-          actionTaken: "Acción",
-        });
-
-      expect(response.status).toBe(409);
     });
   });
 });

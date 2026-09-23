@@ -269,4 +269,74 @@ describe("Servicio de IA - analyzeIncident", () => {
       })
     );
   });
+
+  it("Debería incluir la leyenda de fuentes y la directiva defensiva sobre la solución humana en el prompt", async () => {
+    // 1. ARRANGE
+    const mockFakeResponse = {
+      text: JSON.stringify({
+        causa_probable: "Causa de prueba.",
+        accion_recomendada: "Acción de prueba.",
+      }),
+    };
+    mockGenerateContent.mockResolvedValue(mockFakeResponse);
+
+    const historicalContext = JSON.stringify([
+      {
+        id: 15,
+        error_description: "getaddrinfo ENOTFOUND",
+        human_verified_resolution: {
+          root_cause: "Configuración DNS incorrecta",
+          action_taken: "Actualizar los registros DNS",
+        },
+      },
+    ]);
+
+    // 2. ACT
+    await analyzeIncident(
+      "Servicio de Autenticación",
+      "https://auth.miservicio.com/health",
+      "getaddrinfo ENOTFOUND",
+      0,
+      historicalContext,
+    );
+
+    // 3. ASSERT: La leyenda de fuentes debe vivir en el prompt
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining(
+          "acción real, verificada por un operador",
+        ),
+      })
+    );
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining(
+          "ai_analysis",
+        ),
+      })
+    );
+    // La directiva defensiva debe prohibir el copy-paste ciego
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining(
+          "PROHIBIDO copiar la solución humana a ciegas",
+        ),
+      })
+    );
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining(
+          "Si el errorDetails actual presenta variaciones significativas",
+        ),
+      })
+    );
+    // La solución humana del histórico debe llegar al contenido del prompt
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: expect.stringContaining(
+          "human_verified_resolution",
+        ),
+      })
+    );
+  });
 });

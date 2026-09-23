@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import type { AunthenticatedRequest } from "../middlewares/auth.middleware.js";
 import {
   IncidentNotFoundError,
-  IncidentNotOpenError,
+  ResolutionAlreadyRecordedError,
   resolveIncidentWithLog,
 } from "../services/incident.service.js";
 
@@ -95,9 +95,21 @@ export const resolveIncident = async (
       rootCause,
       actionTaken,
     );
+
+    let message: string;
+    if (result.closedNow) {
+      message = "Incident resolved successfully";
+    } else if (result.incident.status === "RESOLVED") {
+      message =
+        "Resolution recorded. Incident was already resolved (recovered before logging).";
+    } else {
+      message =
+        "Resolution recorded. Incident will close once the service recovers.";
+    }
+
     res.status(200).json({
       success: true,
-      message: "Incident resolved successfully",
+      message,
       data: result,
     });
   } catch (error) {
@@ -108,10 +120,10 @@ export const resolveIncident = async (
       });
       return;
     }
-    if (error instanceof IncidentNotOpenError) {
+    if (error instanceof ResolutionAlreadyRecordedError) {
       res.status(409).json({
         success: false,
-        error: "Incident is not open",
+        error: "A resolution has already been recorded for this incident",
       });
       return;
     }

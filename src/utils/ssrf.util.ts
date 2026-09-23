@@ -281,9 +281,24 @@ export const validatePublicHttpUrl = async (
 export const createPinnedAgentOptions = (address: string, family: number) => {
   const pinnedLookup = (
     _hostname: string,
-    _options: unknown,
-    callback: (err: NodeJS.ErrnoException | null, ip: string, family: number) => void,
-  ) => callback(null, address, family);
+    options: unknown,
+    callback: (
+      err: NodeJS.ErrnoException | null,
+      result: string | Array<{ address: string; family: number }>,
+      resolvedFamily?: number,
+    ) => void,
+  ) => {
+    // Node llama al lookup con { all: true } (autoSelectFamily activo por
+    // defecto) y espera la forma array [{ address, family }]. Con all: false
+    // espera la forma simple (address, family). Responder a ambas evita
+    // ERR_INVALID_IP_ADDRESS: Invalid IP address: undefined.
+    const multi = (options as { all?: boolean })?.all;
+    if (multi) {
+      callback(null, [{ address, family }]);
+    } else {
+      callback(null, address, family);
+    }
+  };
 
   return {
     httpAgent: new http.Agent({ lookup: pinnedLookup as any }),
