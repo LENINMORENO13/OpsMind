@@ -71,6 +71,8 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 | Node.js          | Runtime                |
 | TypeScript       | Lenguaje               |
 | Express          | API HTTP               |
+| Express Rate Limit | Rate limiting (auth) |
+| Helmet           | Cabeceras de seguridad |
 | Prisma ORM       | Acceso a datos         |
 | PostgreSQL       | Persistencia           |
 | Node-Cron        | Background workers     |
@@ -239,7 +241,7 @@ cd OpsMind
 cp .env.example .env
 ```
 
-Configura valores reales para `JWT_SECRET` (obligatorio para la autenticación JWT) y `GEMINI_API_KEY` antes de iniciar la aplicación.
+Configura valores reales para `JWT_SECRET` (obligatorio para la autenticación JWT), `GEMINI_API_KEY` y `POSTGRES_PASSWORD` (obligatoria para `docker compose up`) antes de iniciar la aplicación. `POSTGRES_USER` y `POSTGRES_DB` son opcionales (por defecto `lenin_dev` y `opsmind_db`). La conexión local a PostgreSQL es por el puerto `5433`.
 
 ## 3. Docker
 
