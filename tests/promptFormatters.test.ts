@@ -9,6 +9,7 @@ describe("formatHistoricalIncidents - Formateo de contexto histórico", () => {
       analysis: "El DNS no resolvió el host del servicio.",
       suggestion: "Revisar la configuración del registro DNS.",
     },
+    resolutionLog: null,
   };
 
   it("Debería incluir el id del incidente en cada elemento formateado", () => {
@@ -82,5 +83,32 @@ describe("formatHistoricalIncidents - Formateo de contexto histórico", () => {
     const result = formatHistoricalIncidents([]);
 
     expect(result).toBeNull();
+  });
+
+  it("Debería incluir root_cause y action_taken cuando existe resolutionLog", () => {
+    const result = formatHistoricalIncidents([
+      {
+        ...baseIncident,
+        resolutionLog: {
+          rootCause: "Fallo en la base de datos",
+          actionTaken: "Reiniciar PostgreSQL",
+        },
+      },
+    ]);
+
+    const parsed = JSON.parse(result!);
+    expect(parsed[0]).toMatchObject({
+      human_verified_resolution: {
+        root_cause: "Fallo en la base de datos",
+        action_taken: "Reiniciar PostgreSQL",
+      },
+    });
+  });
+
+  it("Debería usar null en human_verified_resolution cuando no existe resolutionLog", () => {
+    const result = formatHistoricalIncidents([baseIncident]);
+
+    const parsed = JSON.parse(result!);
+    expect(parsed[0].human_verified_resolution).toBeNull();
   });
 });

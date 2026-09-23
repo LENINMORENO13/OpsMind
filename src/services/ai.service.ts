@@ -72,6 +72,11 @@ export const analyzeIncident = async (
       - Error / Excepción: ${errorDetails}
 
       --- INCIDENTES HISTÓRICOS (CONTEXTO) ---
+      Los incidentes históricos pertenecen al mismo servicio que el incidente actual.
+      Interpreta cada campo como sigue:
+      - "ai_analysis": hipótesis diagnóstica generada automáticamente por IA en ese incidente pasado. No está verificada y puede ser especulativa.
+      - "ai_suggestion": recomendación técnica generada por IA en ese incidente pasado. No confirma que la acción haya resuelto el problema.
+      - "human_verified_resolution": acción real, verificada por un operador, que resolvió ESE incidente histórico en concreto. Es evidencia de alta confianza acotada a ese momento y entorno; NO es una verdad universal ni debe generalizarse.
       ${historicalContext ?? "No existen incidentes históricos disponibles. Basa el diagnóstico en el incidente actual y conocimiento general de infraestructura."}
 
       --- REGLAS ---
@@ -80,10 +85,15 @@ export const analyzeIncident = async (
       3. Compartir únicamente el mismo código o mensaje de error NO implica que exista una causa o patrón recurrente.
       4. No inventes información ni IDs de incidentes.
       5. No menciones históricos que no aporten información útil.
+      6. Antes de reutilizar una solución humana verificada ("human_verified_resolution"), compara sus condiciones con el incidente actual: código de error, mensaje de error, síntoma y servicio.
+      7. PROHIBIDO copiar la solución humana a ciegas. Si el errorDetails actual presenta variaciones significativas respecto al histórico (distinto código, causa aparente o escenario), descarta la solución humana y diagnostica basándote únicamente en el incidente actual.
+      8. No asumas que una solución humana pasada es siempre la correcta, ni la presentes como parte del diagnóstico actual. Si la usas, indícala como referencia de un histórico.
 
       --- historicalAnalysis ---
       Indica de dónde proviene el diagnóstico:
       - Si un histórico fue relevante, menciona su ID y qué información aportó.
+      - Si reutilizaste la solución humana de un histórico, justifica explícitamente por qué las condiciones del incidente actual coinciden con las de ese histórico.
+      - Si descartaste una solución humana disponible, justifica explícitamente por qué las condiciones NO coinciden (variaciones en errorDetails, código o escenario).
       - Si varios fueron relevantes, menciona sus IDs y la relación encontrada.
       - Si ninguno fue relevante, indica que el diagnóstico se basa en el incidente actual y conocimiento general de infraestructura.
       - Evita frases vagas como "es un patrón recurrente" sin indicar qué incidentes lo sustentan.
@@ -123,7 +133,7 @@ export const analyzeIncident = async (
             historicalAnalysis: {
               type: Type.STRING,
               description:
-                "Indica de forma explícita el origen del diagnóstico. Si utilizaste uno o más incidentes históricos, menciona sus IDs y explica brevemente qué información del incidente anterior fue relevante. Si ningún incidente histórico aportó información relevante, indica que el diagnóstico se basa en el incidente actual y conocimiento general de infraestructura. No afirmes que existe un patrón recurrente sin mencionar los incidentes que lo sustentan.",
+                "Indica de forma explícita el origen del diagnóstico. Si utilizaste uno o más incidentes históricos, menciona sus IDs y explica brevemente qué información del incidente anterior fue relevante. Si reutilizaste una solución humana verificada, justifica por qué las condiciones actuales coinciden con las del histórico; si descartaste una, explica por qué NO coinciden (variaciones en errorDetails, código o escenario). Si ningún incidente histórico aportó información relevante, indica que el diagnóstico se basa en el incidente actual y conocimiento general de infraestructura. No afirmes que existe un patrón recurrente sin mencionar los incidentes que lo sustentan.",
             },
           },
           required: [
