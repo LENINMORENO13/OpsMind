@@ -146,7 +146,7 @@ export async function resolveIncidentWithLog(
       error instanceof IncidentNotOpenError
     ) {
       throw error;
-    } 
+    }
     throw new Error("Error resolving the incident", { cause: error });
   }
 }
@@ -170,6 +170,12 @@ export async function getRecentIncidentsContext(monitorId: number) {
           select: {
             analysis: true,
             suggestion: true,
+          },
+        },
+        resolutionLog: {
+          select: {
+            rootCause: true,
+            actionTaken: true,
           },
         },
       },
