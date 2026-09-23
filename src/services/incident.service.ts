@@ -8,17 +8,8 @@ export async function openIncident(
   errorDetails: string,
 ) {
   try {
-    const incidentExisting = await prisma.incident.findFirst({
-      where: {
-        monitorId,
-        status: "OPEN",
-      },
-    });
-
-    if (incidentExisting) {
-      return incidentExisting;
-    }
-
+    // El índice único parcial (Incident_open_unique) garantiza la exclusividad
+    // del estado OPEN incluso bajo llamadas concurrentes.
     const newIncident = await prisma.incident.create({
       data: {
         monitorId,
@@ -35,7 +26,22 @@ export async function openIncident(
     });
     return newIncident;
   } catch (error) {
-    throw new Error("Error opening incident");
+    // Si otro proceso ya abrió el incidente, devolvemos el existente sin
+    // duplicar ni reemitir el análisis de IA.
+    if ((error as { code?: string })?.code === "P2002") {
+      const incidentExisting = await prisma.incident.findFirst({
+        where: {
+          monitorId,
+          status: "OPEN",
+        },
+      });
+
+      if (incidentExisting) {
+        return incidentExisting;
+      }
+    }
+
+    throw new Error("Error opening incident", { cause: error });
   }
 }
 
@@ -48,8 +54,10 @@ export async function resolvedIncident(monitorId: number) {
       },
     });
 
+    // Una recuperación sin incidente OPEN es un no-op válido: no debe romper
+    // el flujo del chequeo (p. ej. primer chequeo en UP o resolución manual).
     if (!incidentExisting) {
-      throw new Error("There is no open incident for this monitor.");
+      return null;
     }
 
     const now = new Date();
@@ -68,6 +76,102 @@ export async function resolvedIncident(monitorId: number) {
     return updateIncident;
   } catch (error) {
     throw new Error("Error updating the incident", { cause: error });
+  }
+}
+
+export class IncidentNotFoundError extends Error {
+  constructor() {
+    super("Incident not found");
+  }
+}
+
+export class ResolutionAlreadyRecordedError extends Error {
+  constructor() {
+    super("A resolution has already been recorded for this incident");
+  }
+}
+
+export async function resolveIncidentWithLog(
+  incidentId: number,
+  userId: number,
+  rootCause: string,
+  actionTaken: string,
+) {
+  try {
+    // Registra la solución humana una sola vez por incidente (1:1).
+    // El cierre del incidente es independiente de este registro:
+    // - OPEN + monitor sano → cierra el incidente.
+    // - OPEN + monitor caído → permanece OPEN hasta RECOVERED.
+    // - RESOLVED → solo adjunta el log de la solución.
+    return await prisma.$transaction(async (tx) => {
+      const incident = await tx.incident.findUnique({
+        where: { id: incidentId },
+        include: {
+          monitor: { select: { lastStatus: true } },
+        },
+      });
+
+      if (!incident) {
+        throw new IncidentNotFoundError();
+      }
+
+      const existingLog = await tx.resolutionLog.findUnique({
+        where: { incidentId },
+      });
+      if (existingLog) {
+        throw new ResolutionAlreadyRecordedError();
+      }
+
+      const now = new Date();
+      const totalMinutesDown = Math.round(
+        (now.getTime() - incident.startedAt.getTime()) / 60000,
+      );
+
+      let updatedIncident: {
+        id: number;
+        status: "OPEN" | "RESOLVED" | "IGNORED";
+        resolvedAt: Date | null;
+        downtime: number | null;
+      };
+      let closedNow = false;
+
+      const monitorHealthy =
+        incident.monitor.lastStatus === "UP" ||
+        incident.monitor.lastStatus === "DEGRADED";
+
+      if (incident.status === "OPEN" && monitorHealthy) {
+        updatedIncident = await tx.incident.update({
+          where: { id: incidentId },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: now,
+            downtime: totalMinutesDown,
+          },
+        });
+        closedNow = true;
+      } else {
+        updatedIncident = incident;
+      }
+
+      const resolutionLog = await tx.resolutionLog.create({
+        data: {
+          rootCause,
+          actionTaken,
+          userId,
+          incidentId,
+        },
+      });
+
+      return { incident: updatedIncident, resolutionLog, closedNow };
+    });
+  } catch (error) {
+    if (
+      error instanceof IncidentNotFoundError ||
+      error instanceof ResolutionAlreadyRecordedError
+    ) {
+      throw error;
+    }
+    throw new Error("Error resolving the incident", { cause: error });
   }
 }
 
@@ -90,6 +194,12 @@ export async function getRecentIncidentsContext(monitorId: number) {
           select: {
             analysis: true,
             suggestion: true,
+          },
+        },
+        resolutionLog: {
+          select: {
+            rootCause: true,
+            actionTaken: true,
           },
         },
       },

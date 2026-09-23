@@ -27,3 +27,5 @@ postman/
 
 # Documentation
 docs/
+.kilo/
+.opencode

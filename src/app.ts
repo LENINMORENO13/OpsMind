@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import routes from "./routes/monitor.routes.js";
 import { getFormattedDate } from "./utils/helpers.js";
 import { startCronJobs } from "./services/scheduler.service.js";
@@ -15,6 +16,7 @@ const app = express();
 console.log("--- Monitoring System ---");
 console.log("Started on: ", getFormattedDate());
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
