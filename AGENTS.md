@@ -1,6 +1,6 @@
 # AGENTS.md
 
-OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-assisted incident analysis. PostgreSQL via Prisma 7, JWT auth, `node-cron` background checks, Google Gemini. No frontend. Prompts/README are in Spanish; code/comments mix Spanish and English.
+OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-assisted incident analysis. PostgreSQL via Prisma 7, JWT auth, `node-cron` background checks, Google Gemini. No frontend. Deployed on Render (API) + Supabase (Postgres), released to `main` as **v2.4.0**. Prompts/README are in Spanish; code/comments mix Spanish and English.
 
 ## Commands
 
@@ -35,4 +35,5 @@ Response envelope everywhere: `{ success, message?, error?, data? }`.
 
 - `docs/` and `.postman/` are gitignored. `docs/ARCHITECTURE.md` and `.github/copilot-instructions.md` are **stale** (reference `.js` filenames, old service names, a nonexistent `seed.ts`). Trust source over those docs.
 - Working branch is `develop`; workflow (`.github/workflows/main.yml`) runs CI on `main` and `develop` (temporary Postgres + `prisma db push` before `npm test`, plus typecheck/build) and CD on `main` (`migrate deploy` a Supabase + webhook de Render).
+- **Deployment setup is external to the repo:** GitHub Actions secrets `DATABASE_URL`/`DIRECT_URL` (Supabase direct IPv4, port `5432`) and `RENDER_DEPLOY_HOOK`; Render service builds from the repo Dockerfile with Auto-Deploy disabled (deploys only via the webhook) and runtime `DATABASE_URL` uses the Supabase pooler (`:6543?pgbouncer=true`). Don't create or change these from here.
 - Commits follow conventional prefixes (`feat:`, `fix:`, `docs:`, `test:`, `db:`).
