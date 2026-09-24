@@ -205,4 +205,4 @@ Required in `.env`:
 
 - Swagger/OpenAPI docs: http://localhost:3000/api-docs
 - Prisma Studio: `npx prisma studio` (visualize data)
-- GitHub Actions CI: `.github/workflows/ci.yml`
+- GitHub Actions CI/CD: `.github/workflows/main.yml`
