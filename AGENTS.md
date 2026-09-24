@@ -16,8 +16,8 @@ OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-ass
 
 - **ESM + NodeNext imports:** TypeScript source uses `.js` extensions on relative imports (e.g. `import prisma from "../lib/prisma.js"`), even though the files are `.ts`. Match this or build/runtime breaks. Jest strips the extension via `moduleNameMapper`.
 - **Tests need a real PostgreSQL.** Under `NODE_ENV=test`, `src/lib/prisma.ts` uses `TEST_DATABASE_URL` (falls back to `DATABASE_URL`). The schema must already exist; run `npx prisma db push` first. Tests truncate with `deleteMany` and disconnect via `afterAll(() => prisma.$disconnect())`.
-- **Prisma CLI + client:** `prisma.config.ts` prefers `DIRECT_URL` over `DATABASE_URL` for CLI commands. There is no `postinstall`; run `npx prisma generate` after editing `prisma/schema.prisma` (CI does) or typecheck/build fails on the missing client. Docker/CI use `npx prisma db push`, not `migrate deploy`, though `prisma/migrations/` exists.
-- **`.env.example` is incomplete:** it omits `DIRECT_URL` and `TEST_DATABASE_URL`, which `prisma.config.ts` and `src/lib/prisma.ts` read. Mirror the keys from `.env` when setting up a fresh environment.
+- **Prisma CLI + client:** `prisma.config.ts` prefers `DIRECT_URL` over `DATABASE_URL` for CLI commands. There is no `postinstall`; run `npx prisma generate` after editing `prisma/schema.prisma` (CI does) or typecheck/build fails on the missing client. Tests provision the schema with `npx prisma db push` against a throwaway Postgres; **production uses `prisma migrate deploy`** (CD and Dockerfile `CMD`).
+- **`.env.example`** includes `DIRECT_URL` and `TEST_DATABASE_URL`, which `prisma.config.ts` and `src/lib/prisma.ts` read. Prod (Supabase) requires the direct IPv4 URL for `migrate deploy` and the pooler (`:6543`) for the app at runtime.
 - **Cron only runs outside tests:** `app.ts` calls `startCronJobs()` only when `NODE_ENV !== "test"` and after `app.listen`. The job runs every 5 min (`scheduler.service.ts`).
 - **AI is event-driven:** `incident.service.openIncident` emits `incident-opened`; the listener lives in `notification.service.ts`, imported for its side effect in `app.ts`. Removing/altering that import silently disables AI analysis.
 - **Status endpoints have side effects:** `GET /api/v1/monitors/status/all` and `/status/:site` run real checks via `executeMonitorCheck`, writing `Log` rows and potentially opening/resolving incidents and triggering Gemini. Don't hit them casually in tests or manual probes.
@@ -34,5 +34,5 @@ Response envelope everywhere: `{ success, message?, error?, data? }`.
 ## Repo notes
 
 - `docs/` and `.postman/` are gitignored. `docs/ARCHITECTURE.md` and `.github/copilot-instructions.md` are **stale** (reference `.js` filenames, old service names, a nonexistent `seed.ts`). Trust source over those docs.
-- Working branch is `develop`; CI (`.github/workflows/ci.yml`) runs on `main` and `develop`, using a temporary Postgres and `prisma db push` before `npm test`.
+- Working branch is `develop`; workflow (`.github/workflows/main.yml`) runs CI on `main` and `develop` (temporary Postgres + `prisma db push` before `npm test`, plus typecheck/build) and CD on `main` (`migrate deploy` a Supabase + webhook de Render).
 - Commits follow conventional prefixes (`feat:`, `fix:`, `docs:`, `test:`, `db:`).

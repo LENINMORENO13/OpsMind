@@ -1,6 +1,6 @@
 # 🛡️ OpsMind — Microservice Monitoring & Incident Analysis
 
-![CI](https://github.com/LENINMORENO13/OpsMind/actions/workflows/ci.yml/badge.svg)
+![CI/CD](https://github.com/LENINMORENO13/OpsMind/actions/workflows/main.yml/badge.svg)
 
 OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA.
 
@@ -55,7 +55,7 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 * Persistencia con Prisma y PostgreSQL
 * Swagger/OpenAPI para documentación de la API
 * Contenerización con Docker
-* Integración continua con GitHub Actions
+* Integración y despliegue continuos con GitHub Actions (CI/CD)
 * Gestión del ciclo de vida de incidentes
 * Cálculo automático de downtime
 * Registro de soluciones humanas (root cause + acción) por incidente
@@ -84,7 +84,7 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 | Zod              | Validación de datos    |
 | Axios            | HTTP health checks     |
 | Docker           | Contenedores           |
-| GitHub Actions   | Continuous Integration |
+| GitHub Actions   | CI/CD (integración y despliegue continuos) |
 | @google/genai    | Integración con Gemini |
 
 ---
