@@ -1,4 +1,4 @@
-name: CI - OpsMind
+name: CI/CD - OpsMind
 
 on:
   push:
@@ -42,12 +42,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Generate prisma client
         run: npx prisma generate
+
+      # Fail-fast fallos de compilación/tipado antes de gastar tiempo en la suite
+      - name: Typecheck (src + tests)
+        run: npm run typecheck
+
+      - name: Build production bundle
+        run: npm run build
 
       # 2. Paso activo: Esto viaja a la DB temporal vacía y crea la tabla Monitor
       - name: Push Prisma schema to test database
@@ -56,3 +64,43 @@ jobs:
       # 3. Jest ejecuta las pruebas encontrando las tablas listas
       - name: Run test suite
         run: npm test
+
+  # 4. CD: sólo en push a main y con el CI verde.
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: test
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+
+    env:
+      # Conexión DIRECTA (IPv4, puerto 5432) de Supabase para `migrate deploy`
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate prisma client
+        run: npx prisma generate
+
+      # 5. Aplica las migraciones pendientes a producción (idempotente; no-op si ya están)
+      - name: Deploy migrations to production (Supabase)
+        run: npx prisma migrate deploy
+
+      # 6. Dispara el rebuild/rollout de la API en Render usando el Dockerfile del repo.
+      #    El CMD del contenedor también corre `migrate deploy` (no-op si ya aplicado).
+      - name: Trigger Render deploy via webhook
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

@@ -1,6 +1,6 @@
 # 🛡️ OpsMind — Microservice Monitoring & Incident Analysis
 
-![CI](https://github.com/LENINMORENO13/OpsMind/actions/workflows/ci.yml/badge.svg)
+![CI/CD](https://github.com/LENINMORENO13/OpsMind/actions/workflows/main.yml/badge.svg)
 
 OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA.
 

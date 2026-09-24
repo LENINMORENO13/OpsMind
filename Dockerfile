@@ -18,5 +18,5 @@ RUN npm run build
 
 EXPOSE 3000
 
-# 5. Aplicar esquema a la BD y arrancar la app desde dist/app.js
-CMD npx prisma db push && npm start
+# 5. Aplicar migraciones a la BD y arrancar la app desde dist/app.js
+CMD npx prisma migrate deploy && npm start
