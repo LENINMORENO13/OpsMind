@@ -100,7 +100,8 @@ jobs:
       - name: Deploy migrations to production (Supabase)
         run: npx prisma migrate deploy
 
-      # 6. Dispara el rebuild/rollout de la API en Render usando el Dockerfile del repo.
-      #    El CMD del contenedor también corre `migrate deploy` (no-op si ya aplicado).
+      # 6. Dispara el rebuild/rollout de la API en Render. El servicio está configurado
+      #    como Native Node con Build Command `npm run build:all` (compila backend y frontend);
+      #    su Start Command también corre `migrate deploy` (no-op si ya aplicado).
       - name: Trigger Render deploy via webhook
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
