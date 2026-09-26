@@ -17,6 +17,7 @@ coverage/
 
 # Build output
 dist/
+frontend/dist/
 
 # Docker Compose local overrides
 docker-compose.override.yml
@@ -29,3 +30,5 @@ postman/
 docs/
 .kilo/
 .opencode
+
+frontend/tsconfig.tsbuildinfo

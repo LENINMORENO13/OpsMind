@@ -21,4 +21,5 @@ export default {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
   moduleFileExtensions: ["ts", "js", "json", "node"],
+  testPathIgnorePatterns: ["/node_modules/", "/\\.kilo/"],
 };
