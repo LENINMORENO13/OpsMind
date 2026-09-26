@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import routes from "./routes/monitor.routes.js";
 import { getFormattedDate } from "./utils/helpers.js";
 import { startCronJobs } from "./services/scheduler.service.js";
@@ -16,6 +17,7 @@ import type { NextFunction, Request, Response } from "express";
 const app = express();
 
 const frontendDist = path.join(process.cwd(), "frontend", "dist");
+const frontendIndexHtml = path.join(frontendDist, "index.html");
 
 console.log("--- Monitoring System ---");
 console.log("Started on: ", getFormattedDate());
@@ -38,7 +40,11 @@ app.use((req: Request, res: Response, next: NextFunction): void => {
     next();
     return;
   }
-  res.sendFile(path.join(frontendDist, "index.html"));
+  if (!existsSync(frontendIndexHtml)) {
+    res.status(503).json({ success: false, error: "Frontend no disponible: el panel web no se ha compilado en este despliegue." });
+    return;
+  }
+  res.sendFile(frontendIndexHtml);
 });
 
 if (process.env.NODE_ENV !== "test") {

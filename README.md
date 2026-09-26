@@ -479,10 +479,19 @@ Las siguientes fases están orientadas a ampliar el uso de la información hist�
 
 # 🌐 Entorno desplegado
 
-La API está desplegada en Render y cuenta con documentación Swagger disponible públicamente.
+La API y el panel web están desplegados en Render (mismo origen):
 
-* API: https://opsmind-e07b.onrender.com
-* Docs: https://opsmind-e07b.onrender.com/api-docs
+* Panel web: https://opsmind-e07b.onrender.com
+* API + Swagger: https://opsmind-e07b.onrender.com/api-docs
+
+El servicio de Render es **Native Node** (no Docker). Su **Build Command** debe render backend y frontend; el **Start Command** aplica migraciones y arranca la API:
+
+```
+npm install && npx prisma generate && npm run build && cd frontend && npm install && npm run build
+npx prisma migrate deploy && npm start
+```
+
+Si el frontend no está compilado, la app responde `503` con JSON en rutas no-API en vez de fallar.
 
 ---
 
