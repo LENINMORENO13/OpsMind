@@ -30,3 +30,5 @@ postman/
 docs/
 .kilo/
 .opencode
+
+frontend/tsconfig.tsbuildinfo
