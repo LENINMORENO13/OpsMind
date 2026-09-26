@@ -2,9 +2,9 @@
 
 ![CI/CD](https://github.com/LENINMORENO13/OpsMind/actions/workflows/main.yml/badge.svg)
 
-OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA.
+OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA, con un panel web operativo integrado.
 
-El proyecto utiliza una API REST, workers en segundo plano, autenticación JWT, PostgreSQL para persistencia y un sistema de incidentes con análisis histórico.
+El proyecto utiliza una API REST, workers en segundo plano, autenticación JWT, PostgreSQL para persistencia, un sistema de incidentes con análisis histórico y un panel web (React) servido por la propia API.
 
 ---
 
@@ -63,6 +63,10 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 * Contexto histórico basado en incidentes anteriores y soluciones humanas verificadas
 * Procesamiento de IA desacoplado mediante eventos
 * Validación SSRF (solo IPs públicas) al registrar monitores
+* Panel web operativo (React + TypeScript) servido por Express en el mismo origen
+* Dashboard con resumen, monitores, incidentes, métricas y insights IA
+* CRUD de monitores desde la interfaz web
+* Resolución de incidentes (HITL) desde la interfaz web
 
 ---
 
@@ -86,6 +90,12 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 | Docker           | Contenedores           |
 | GitHub Actions   | CI/CD (integración y despliegue continuos) |
 | @google/genai    | Integración con Gemini |
+| React            | Panel web operativo (SPA) |
+| Vite             | Build del panel web |
+| Tailwind CSS     | Estilos del panel web |
+| React Router     | Rutas del panel web |
+| Recharts         | Gráficos del panel web |
+| Lucide           | Iconos del panel web |
 
 ---
 
@@ -98,6 +108,9 @@ graph TD
     Auth --> Services[Service Layer]
     Services --> Prisma
     Prisma --> DB[(PostgreSQL)]
+
+    Web[Panel web React SPA<br>servido por Express] -->|/api/v1/dashboard/*| API
+    API -->|estático + fallback SPA| Web
 
     Workers[Node-Cron Workers] --> Scheduler[Scheduler Service]
     Scheduler -->|ventana de intervalo| Checker[Checker Service]
@@ -154,6 +167,24 @@ Authorization: Bearer <token>
 | GET    | `/api/v1/monitors/status/all`   | Estado general      |
 | GET    | `/api/v1/monitors/status/:site` | Estado por servicio |
 | GET    | `/api/v1/monitors/:id/history`  | Historial           |
+
+---
+
+## 📊 Dashboard Operativo
+
+Endpoints de solo lectura (sin side effects) que alimentan el panel web. **Authorization requerido:**
+
+```http
+Authorization: Bearer <token>
+```
+
+| Método | Endpoint                                       | Descripción                                                       |
+| ------ | ---------------------------------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/v1/dashboard/summary`                    | Resumen global (monitores, incidentes, logs, insights)            |
+| GET    | `/api/v1/dashboard/monitors`                   | Monitores con contexto operativo (`includeInactive`, `limit`)     |
+| GET    | `/api/v1/dashboard/incidents`                  | Incidentes recientes/abiertos por ventana (`window`, `monitorId`) |
+| GET    | `/api/v1/dashboard/metrics`                    | Series temporales por bucket (`window`, `bucket`, `monitorId`)    |
+| GET    | `/api/v1/dashboard/insights`                   | Insights IA recientes (`limit`)                                   |
 
 ---
 
@@ -269,7 +300,9 @@ Configura valores reales para `JWT_SECRET` (obligatorio para la autenticación J
 docker compose up --build
 ```
 
-* API: http://localhost:3000
+El multi-stage build compila el panel web (`frontend/dist`) y luego la API:
+
+* Panel web: http://localhost:3000
 * Swagger: http://localhost:3000/api-docs
 * PostgreSQL: `db:5432`
 
@@ -277,6 +310,18 @@ docker compose up --build
 
 ```bash
 docker compose down
+```
+
+## 5. Desarrollo local (sin Docker)
+
+El panel web en modo desarrollo usa Vite con proxy hacia la API (`/api` y `/api-docs`):
+
+```bash
+# Terminal 1 — API
+npm run dev
+
+# Terminal 2 — Panel web (Vite, puerto 5173)
+cd frontend && npm run dev
 ```
 
 ---
@@ -300,6 +345,7 @@ Incluye pruebas para:
 * Protección SSRF y validación de URLs públicas
 * Cadencia programada y throttling por ventana del scheduler
 * Formateo y sanitización del contexto histórico (prompt-formatters)
+* Endpoints del dashboard operativo (summary, monitors, incidents, metrics, insights)
 
 ---
 
@@ -413,11 +459,20 @@ La segunda versión amplía OpsMind desde el monitoreo de servicios hacia la ges
 * [x] Soluciones humanas verificadas incorporadas al contexto histórico (`human_verified_resolution`)
 * [x] Reglas defensivas en el prompt: prohibido copiar soluciones humanas a ciegas
 
+### Fase 4 — Operational Dashboard ✅
+
+* [x] Endpoints de dashboard de solo lectura (`summary`, `monitors`, `incidents`, `metrics`, `insights`) sin side effects
+* [x] Panel web React (SPA) servido por Express en el mismo origen (sin CORS)
+* [x] Vistas: resumen, monitores, incidentes, métricas con gráficos (Recharts) e insights IA
+* [x] Datos operativos por ventanas (24h, 7d, 30d, 90d)
+* [x] CRUD de monitores desde la interfaz web (crear, editar, eliminar)
+* [x] Resolución de incidentes (HITL) desde la interfaz web
+* [x] Autenticación y protección de rutas en el panel (JWT)
+
 ### Próximas fases
 
 Las siguientes fases están orientadas a ampliar el uso de la información histórica y facilitar el análisis y seguimiento de incidentes.
 
-* **Fase 4 — Operational Dashboard**
 * **Fase 5 — AI Engine Continuous Improvement**
 
 ---
