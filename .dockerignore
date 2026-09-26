@@ -1,3 +1,7 @@
 node_modules
 npm-debug.log
 .env
+
+# Frontend (se construye en su propio stage de Docker)
+frontend/dist
+frontend/node_modules
