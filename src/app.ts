@@ -7,6 +7,7 @@ import { swaggerSpec } from "./config/swagger.js";
 import swaggerUI from "swagger-ui-express";
 import authRoutes from "./routes/auth.routes.js";
 import incidentRoutes from "./routes/incidents.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import "./services/notification.service.js";
 import type { Request, Response } from "express";
 
@@ -29,6 +30,7 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 app.use("/api/v1/monitors", routes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/incidents", incidentRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 if (process.env.NODE_ENV !== "test") {
   const PORT: number | string = process.env.PORT || 3000;
