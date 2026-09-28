@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import prisma from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
+import { DEMO_PASSWORD, DEMO_EMAIL, isDemoEnabled } from "../services/demo-user.service.js";
 import type { Request, Response } from "express";
 
 export interface RegisterDTO {
@@ -90,6 +91,36 @@ export const login = async (
     const err = error as Error;
     console.error(err);
     return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+};
+
+export const getDemoCredentials = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    // Exponer las credenciales demo es intencional: permiten probar el panel
+    // de forma pública. Sin env configurado, se devuelve enabled:false para
+    // que la UI no muestre el acceso de prueba ni filtre credenciales.
+    res.status(200).json({
+      success: true,
+      data: isDemoEnabled()
+        ? {
+            enabled: true,
+            email: DEMO_EMAIL,
+            password: DEMO_PASSWORD,
+          }
+        : {
+            enabled: false,
+            email: null,
+            password: null,
+          },
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       error: "Internal server error",
     });

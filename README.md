@@ -493,6 +493,15 @@ npx prisma migrate deploy && npm start
 
 Si el frontend no está compilado, la app responde `503` con JSON en rutas no-API en vez de fallar.
 
+## Acceso de prueba
+
+El panel ofrece un acceso demo para quienes quieran explorar la plataforma sin registrarse:
+
+* **Credenciales:** `demo@opsmind.com` / `demo1234`
+* En el login aparece el botón **"Explorar con cuenta demo"** que inicia la sesión con un clic.
+* La cuenta se auto-crea de forma idempotente al arrancar si no existe (`upsert`).
+* Se habilita configurando (opcional) `DEMO_EMAIL` y `DEMO_PASSWORD` en el entorno. Sin estos valores, el acceso demo queda deshabilitado y el login es normal.
+
 ---
 
 # 👤 Autor

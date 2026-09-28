@@ -10,6 +10,7 @@ import swaggerUI from "swagger-ui-express";
 import authRoutes from "./routes/auth.routes.js";
 import incidentRoutes from "./routes/incidents.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import { ensureDemoUser } from "./services/demo-user.service.js";
 import "./services/notification.service.js";
 import type { NextFunction, Request, Response } from "express";
 
@@ -51,7 +52,14 @@ if (process.env.NODE_ENV !== "test") {
   const PORT: number | string = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
-    startCronJobs();
+    // Auto-crea la cuenta demo (idempotente) si las credenciales demo están
+    // configuradas. Un fallo aquí no debe impedir el arranque del cron.
+    ensureDemoUser().then(() => {
+      startCronJobs();
+    }).catch((error) => {
+      console.error("Error ensuring demo user:", error);
+      startCronJobs();
+    });
   });
 }
 
