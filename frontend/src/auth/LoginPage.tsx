@@ -1,7 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Activity } from "lucide-react";
-import { login } from "../api/client";
+import {
+  login,
+  demoLogin,
+  getDemoCredentials,
+  type DemoCredentials,
+} from "../api/client";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -9,6 +14,21 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demo, setDemo] = useState<DemoCredentials | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDemoCredentials()
+      .then((creds) => {
+        if (!cancelled) setDemo(creds);
+      })
+      .catch(() => {
+        if (!cancelled) setDemo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,6 +39,21 @@ export function LoginPage() {
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await demoLogin();
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al usar el acceso demo",
+      );
     } finally {
       setLoading(false);
     }
@@ -84,6 +119,24 @@ export function LoginPage() {
             {loading ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
+
+        {demo?.enabled && demo.email && demo.password && (
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-xs text-slate-500">
+              Acceso de prueba:{" "}
+              <code className="text-slate-300">{demo.email}</code> ·{" "}
+              <code className="text-slate-300">{demo.password}</code>
+            </p>
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-indigo-500 hover:text-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Ingresando…" : "Explorar con cuenta demo"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

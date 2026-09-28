@@ -118,6 +118,34 @@ export async function login(email: string, password: string): Promise<void> {
   setToken(body.data);
 }
 
+export interface DemoCredentials {
+  enabled: boolean;
+  email: string | null;
+  password: string | null;
+}
+
+export async function getDemoCredentials(): Promise<DemoCredentials> {
+  const res = await fetch("/api/v1/auth/demo");
+
+  const body = (await res.json().catch(() => null)) as
+    | Envelope<DemoCredentials>
+    | null;
+
+  if (!res.ok || !body?.success || !body.data) {
+    throw new ApiError("No se pudieron obtener las credenciales demo", res.status);
+  }
+
+  return body.data;
+}
+
+export async function demoLogin(): Promise<void> {
+  const demo = await getDemoCredentials();
+  if (!demo.enabled || !demo.email || !demo.password) {
+    throw new ApiError("Acceso demo no disponible", 400);
+  }
+  await login(demo.email, demo.password);
+}
+
 export function logout(): void {
   clearToken();
   window.location.href = "/login";

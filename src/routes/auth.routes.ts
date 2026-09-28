@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login } from "../controllers/auth.controller.js";
+import { register, login, getDemoCredentials } from "../controllers/auth.controller.js";
 import { validateSchema } from "../middlewares/validator.middleware.js";
 import { authRateLimiter } from "../middlewares/rateLimit.middleware.js";
 import { registerSchema, loginSchema } from "../schemas/auth.schemas.js";
@@ -8,8 +8,22 @@ const router = express.Router();
 
 // --- AUTHENTICATION PATHS ---
 
-// Limita intentos de autenticación para mitigar fuerza bruta
-router.use(authRateLimiter);
+// Obtener credenciales de acceso de prueba (GET público; sin rate limit para
+// no bloquear la exploración demo de evaluadores con IP compartida)
+/**
+ * @openapi
+ * /api/v1/auth/demo:
+ *   get:
+ *     tags:
+ *       - Auth
+ *     summary: Get demo credentials for public trial access
+ *     responses:
+ *       200:
+ *         description: Demo credentials returned. 'enabled' is false when not configured
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/demo", getDemoCredentials);
 
 // Registrar un nuevo usuario (POST /api/v1/auth/register)
 /**
@@ -45,7 +59,7 @@ router.use(authRateLimiter);
  *       500:
  *         description: Internal server error
  */
-router.post("/register", validateSchema(registerSchema), register);
+router.post("/register", authRateLimiter, validateSchema(registerSchema), register);
 
 // Iniciar sesión y obtener token (POST /api/v1/auth/login)
 /**
@@ -91,6 +105,6 @@ router.post("/register", validateSchema(registerSchema), register);
  *       500:
  *         description: Internal server error
  */
-router.post("/login", validateSchema(loginSchema), login);
+router.post("/login", authRateLimiter, validateSchema(loginSchema), login);
 
 export default router;
