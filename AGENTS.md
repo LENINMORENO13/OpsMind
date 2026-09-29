@@ -35,4 +35,4 @@ Response envelope everywhere: `{ success, message?, error?, data? }`.
 
 - `docs/` and `.postman/` are gitignored. `docs/ARCHITECTURE.md` and `.github/copilot-instructions.md` are **stale** (reference `.js` filenames, old service names, a nonexistent `seed.ts`). Trust source over those docs.
 - Working branch is `develop`; workflow (`.github/workflows/main.yml`) runs CI on `main` and `develop` (temporary Postgres + `prisma db push` before `npm test`, plus typecheck/build) and CD on `main` (`migrate deploy` a Supabase + webhook de Render).
-- Commits follow conventional prefixes (`feat:`, `fix:`, `docs:`, `test:`, `db:`).
+- Commits follow conventional prefixes (`feat:`, `fix:`, `docs:`, `test:`, `db:`). Titles, PRs and branch names are written in **English** (Spanish is for docs/README/prompts only).
