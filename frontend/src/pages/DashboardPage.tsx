@@ -18,7 +18,7 @@ export function DashboardPage() {
   if (!data) return <EmptyState message="Sin datos disponibles aún." />;
 
   const { monitors, incidents, logs24h, insights } = data;
-  const mttr = incidents.mttrMinutes;
+  const mttr = incidents.mttr30d;
 
   return (
     <div className="space-y-6">

@@ -48,7 +48,7 @@ export async function getDashboardSummary() {
   const since24h = sinceOf("24h");
   const now = new Date();
 
-  const [monitorStatus, incidentsOpen, resolved24h, resolved7d, resolved30d, mttr, logsAgg24h, logsByState24h, insightsRecent] =
+  const [monitorStatus, incidentsOpen, resolved24h, resolved7d, resolved30d, mttr, mttr30d, logsAgg24h, logsByState24h, insightsRecent] =
     await Promise.all([
       prisma.monitor.groupBy({
         by: ["lastStatus"],
@@ -67,6 +67,14 @@ export async function getDashboardSummary() {
       prisma.incident.aggregate({
         _avg: { downtime: true },
         where: { status: "RESOLVED", downtime: { not: null } },
+      }),
+      prisma.incident.aggregate({
+        _avg: { downtime: true },
+        where: {
+          status: "RESOLVED",
+          downtime: { not: null },
+          resolvedAt: { gte: sinceOf("30d") },
+        },
       }),
       prisma.log.aggregate({
         _count: { _all: true },
@@ -118,6 +126,7 @@ export async function getDashboardSummary() {
       resolved7d,
       resolved30d,
       mttrMinutes: mttr._avg.downtime ?? null,
+      mttr30d: mttr30d._avg.downtime ?? null,
       mttr24h:
         (
           await prisma.incident.aggregate({
@@ -163,7 +172,7 @@ export async function getOperationalMonitors(params?: {
 
   const monitorIds = monitors.map((m) => m.id);
 
-  const [openIncidentsByMonitor, logsByStateByMonitor, latestLogs] =
+  const [openIncidentsByMonitor, logsByStateByMonitor, latestLogs, avgResponseByMonitor] =
     await Promise.all([
       prisma.incident.groupBy({
         by: ["monitorId"],
@@ -187,6 +196,11 @@ export async function getOperationalMonitors(params?: {
           timestamp: true,
         },
       }),
+      prisma.log.groupBy({
+        by: ["monitorId"],
+        _avg: { responseTime: true },
+        where: { timestamp: { gte: since24h }, monitorId: { in: monitorIds } },
+      }),
     ]);
 
   const openCountMap = new Map(
@@ -207,6 +221,13 @@ export async function getOperationalMonitors(params?: {
 
   const latestByMonitor = new Map(
     latestLogs.map((l) => [String(l.monitorId), l]),
+  );
+
+  const avgResponseMap = new Map(
+    avgResponseByMonitor.map((r) => [
+      String(r.monitorId),
+      r._avg.responseTime,
+    ]),
   );
 
   const statusPriority: Record<string, number> = {
@@ -241,7 +262,7 @@ export async function getOperationalMonitors(params?: {
         availability24h: pct(counts.UP, total24h),
         down24h: counts.DOWN,
         degraded24h: counts.DEGRADED,
-        avgResponseTime24h: null as number | null,
+        avgResponseTime24h: avgResponseMap.get(String(m.id)) ?? null,
         lastChecked: latest
           ? {
               state: latest.state,
