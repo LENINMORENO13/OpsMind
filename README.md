@@ -487,7 +487,7 @@ La API y el panel web están desplegados en Render (mismo origen):
 El servicio de Render es **Native Node** (no Docker). Su **Build Command** debe render backend y frontend; el **Start Command** aplica migraciones y arranca la API:
 
 ```
-npm install && npx prisma generate && npm run build && cd frontend && npm install && npm run build
+npm install && npx prisma generate && npm run build:all
 npx prisma migrate deploy && npm start
 ```
 
