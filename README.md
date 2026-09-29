@@ -487,9 +487,11 @@ La API y el panel web están desplegados en Render (mismo origen):
 El servicio de Render es **Native Node** (no Docker). Su **Build Command** debe render backend y frontend; el **Start Command** aplica migraciones y arranca la API:
 
 ```
-npm install && npx prisma generate && npm run build && cd frontend && npm install && npm run build
+npm install && npx prisma generate && npm run build:all
 npx prisma migrate deploy && npm start
 ```
+
+> **Nota de runtime:** el proyecto apunta a **Node.js 22 LTS** (coincide con `Dockerfile` y CI). En Render, fijar la variable de entorno `NODE_VERSION=22` para alinear el runtime con CI/Docker.
 
 Si el frontend no está compilado, la app responde `503` con JSON en rutas no-API en vez de fallar.
 

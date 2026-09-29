@@ -41,7 +41,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -56,6 +56,9 @@ jobs:
 
       - name: Build production bundle
         run: npm run build
+
+      - name: Build frontend bundle
+        run: npm run build:frontend
 
       # 2. Paso activo: Esto viaja a la DB temporal vacía y crea la tabla Monitor
       - name: Push Prisma schema to test database
@@ -87,7 +90,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies

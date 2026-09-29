@@ -54,6 +54,7 @@ export interface DashboardSummary {
     resolved7d: number;
     resolved30d: number;
     mttrMinutes: number | null;
+    mttr30d: number | null;
     mttr24h: number | null;
   };
   logs24h: {

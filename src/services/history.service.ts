@@ -78,7 +78,14 @@ export const executeMonitorCheck = async (monitor: Monitor) => {
       analysisResult.details ||
       "Timeout or without response";
 
-    if (analysisResult.trend === "DROP_DETECTED") {
+    // Se abre incidente ante una caída detectada (DROP_DETECTED) o cuando el
+    // primer chequeo del monitor ya lo encuentra caído (OFFLINE con estado DOWN).
+    // openIncident es idempotente por el índice único parcial: los chequeos
+    // posteriores (DOWN→DOWN) no duplican incidente ni re-emiten análisis IA.
+    if (
+      analysisResult.trend === "DROP_DETECTED" ||
+      analysisResult.state === "DOWN"
+    ) {
       await openIncident(monitor.id, monitor.name, monitor.url, errorDetails);
     }
 

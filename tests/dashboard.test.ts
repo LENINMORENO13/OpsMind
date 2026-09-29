@@ -141,6 +141,45 @@ describe("API Dashboard - Endpoints de Integración (solo lecturas)", () => {
       expect(response.body.data.logs24h.availability24h).toBe(0);
       expect(response.body.data.monitors.byStatus.DOWN).toBe(1);
     });
+
+    it("Debería calcular mttr30d solo con incidentes resueltos en los últimos 30 días", async () => {
+      await prisma.incident.deleteMany();
+      await prisma.incident.createMany({
+        data: [
+          {
+            monitorId,
+            status: "RESOLVED",
+            startedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+            resolvedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+            downtime: 60,
+          },
+          {
+            monitorId,
+            status: "RESOLVED",
+            startedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+            resolvedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+            downtime: 120,
+          },
+          {
+            monitorId,
+            status: "RESOLVED",
+            startedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+            resolvedAt: new Date(Date.now() - 59 * 24 * 60 * 60 * 1000),
+            downtime: 999,
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get("/api/v1/dashboard/summary")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      // Solo los dos recientes: (60 + 120) / 2 = 90
+      expect(response.body.data.incidents.mttr30d).toBe(90);
+      // Histórico global incluye el viejo: (60 + 120 + 999) / 3 = 393
+      expect(response.body.data.incidents.mttrMinutes).toBe(393);
+    });
   });
 
   describe("GET /api/v1/dashboard/monitors", () => {
@@ -194,12 +233,15 @@ describe("API Dashboard - Endpoints de Integración (solo lecturas)", () => {
       expect(response.body.data[0].checks24h).toBe(2);
       expect(response.body.data[0].availability24h).toBe(0);
       expect(response.body.data[0].lastChecked).not.toBeNull();
+      // Promedio de respuesta 24h: (2500 + 2400) / 2 = 2450
+      expect(response.body.data[0].avgResponseTime24h).toBe(2450);
 
       const up = response.body.data.find(
         (m: { name: string }) => m.name === "Monitor UP",
       );
       expect(up.lastStatus).toBe("UP");
       expect(up.availability24h).toBe(100);
+      expect(up.avgResponseTime24h).toBe(80);
     });
 
     it("Debería incluir los incidentes abiertos de cada monitor", async () => {

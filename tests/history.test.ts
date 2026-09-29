@@ -106,4 +106,34 @@ describe("executeMonitorCheck - estado del monitor y resiliencia", () => {
     await expect(executeMonitorCheck(monitor)).resolves.toBeDefined();
     expect(mockedResolvedIncident).toHaveBeenCalledWith(monitor.id);
   });
+
+  it("Debería abrir incidente si el primer chequeo encuentra el monitor caído (OFFLINE)", async () => {
+    mockedAnalyze.mockReturnValue({
+      ...baseAnalysis,
+      trend: "OFFLINE",
+      state: "DOWN",
+    });
+
+    await executeMonitorCheck(monitor);
+
+    expect(mockedOpenIncident).toHaveBeenCalledTimes(1);
+    expect(mockedOpenIncident).toHaveBeenCalledWith(
+      monitor.id,
+      monitor.name,
+      monitor.url,
+      "ok",
+    );
+  });
+
+  it("Debería abrir incidente ante una degradación sin caída (DROP_DETECTED con DEGRADED)", async () => {
+    mockedAnalyze.mockReturnValue({
+      ...baseAnalysis,
+      trend: "DROP_DETECTED",
+      state: "DEGRADED",
+    });
+
+    await executeMonitorCheck(monitor);
+
+    expect(mockedOpenIncident).toHaveBeenCalledTimes(1);
+  });
 });
