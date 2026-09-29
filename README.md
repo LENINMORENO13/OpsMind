@@ -109,24 +109,24 @@ graph TD
     Services --> Prisma
     Prisma --> DB[(PostgreSQL)]
 
-    Web[Panel web React SPA<br>servido por Express] -->|/api/v1/dashboard/*| API
-    API -->|estático + fallback SPA| Web
+    Web[Panel web React SPA<br>servido por Express] -->|"/api/v1/dashboard/*"| API
+    API -->|"estático + fallback SPA"| Web
 
     Workers[Node-Cron Workers] --> Scheduler[Scheduler Service]
-    Scheduler -->|ventana de intervalo| Checker[Checker Service]
-    Checker -->|HTTP 5s timeout| External[Servicio monitoreado]
+    Scheduler -->|"ventana de intervalo"| Checker[Checker Service]
+    Checker -->|"HTTP 5s timeout"| External[Servicio monitoreado]
     Checker --> Analyzer[Analyzer TREND_MATRIX]
     Analyzer -->|Log| Prisma
     Analyzer -->|DROP_DETECTED| IncidentService
     Analyzer -->|RECOVERED| IncidentService
 
-    IncidentService -->|incident-opened| Emitter[Event Emitter]
-    Emitter -->|async process| AI[Gemini Analysis]
-    AI -->|AIInsight (análisis + sugerencia + criticidad)| Prisma
-    Prisma -->|contexto histórico<br>últimos 5 resueltos + soluciones humanas| AI
+    IncidentService -->|"incident-opened"| Emitter[Event Emitter]
+    Emitter -->|"async process"| AI[Gemini Analysis]
+    AI -->|"AIInsight (análisis + sugerencia + criticidad)"| Prisma
+    Prisma -->|"contexto histórico: últimos 5 resueltos + soluciones humanas"| AI
 
-    IncidentService -->|downtime calculation| Prisma
-    Services -->|POST /incidents/:id/resolve| IncidentService
+    IncidentService -->|"downtime calculation"| Prisma
+    Services -->|"POST /incidents/:id/resolve"| IncidentService
     IncidentService -->|ResolutionLog| Prisma
 ```
 
