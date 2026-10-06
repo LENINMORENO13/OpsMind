@@ -39,6 +39,10 @@
   "engines": {
     "node": ">=22"
   },
+  "overrides": {
+    "mysql2": "^3.24.5",
+    "deepmerge-ts": "^8.0.2"
+  },
   "dependencies": {
     "@google/genai": "^2.7.0",
     "@prisma/adapter-pg": "^7.6.0",
@@ -71,10 +75,10 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "cross-env": "^10.1.0",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "prisma": "^7.6.0",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.12",
+    "ts-jest": "^29.4.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.2"
