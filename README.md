@@ -41,6 +41,7 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 * [IA](#-análisis-inteligente-con-ia)
 * [Evolución V1 → V2](#-evolución-v1--v2)
 * [Entorno desplegado](#-entorno-desplegado)
+* [Licencia](#-licencia)
 * [Autor](#-autor)
 
 ---
@@ -157,6 +158,17 @@ Authorization: Bearer <token>
 | POST   | `/api/v1/monitors`     | Crear monitor    |
 | PATCH  | `/api/v1/monitors/:id` | Actualizar       |
 | DELETE | `/api/v1/monitors/:id` | Eliminar         |
+
+---
+
+## 🩺 Health checks
+
+Endpoints públicos (sin `Authorization`), pensados para sondas de orquestador y balanceador:
+
+| Método | Endpoint        | Descripción                                                                     |
+| ------ | --------------- | ------------------------------------------------------------------------------- |
+| GET    | `/health`       | Liveness: el proceso responde. No consulta dependencias externas.               |
+| GET    | `/health/ready` | Readiness: verifica la conexión a PostgreSQL. Responde `503` si la base cae.     |
 
 ---
 
@@ -503,6 +515,16 @@ El panel ofrece un acceso demo para quienes quieran explorar la plataforma sin r
 * En el login aparece el botón **"Explorar con cuenta demo"** que inicia la sesión con un clic.
 * La cuenta se auto-crea de forma idempotente al arrancar si no existe (`upsert`).
 * Se habilita configurando (opcional) `DEMO_EMAIL` y `DEMO_PASSWORD` en el entorno. Sin estos valores, el acceso demo queda deshabilitado y el login es normal.
+
+---
+
+# 📄 Licencia
+
+Este proyecto está bajo la licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para ver los términos completos.
+
+```
+Copyright (c) 2026 Lenin Moreno
+```
 
 ---
 
