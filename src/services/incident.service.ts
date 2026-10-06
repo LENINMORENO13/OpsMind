@@ -1,5 +1,7 @@
 import prisma from "../lib/prisma.js";
 import emitter from "../events/emitter.js";
+import { ConflictError, NotFoundError } from "../middlewares/error.middleware.js";
+import { logger } from "../lib/logger.js";
 
 export async function openIncident(
   monitorId: number,
@@ -24,6 +26,12 @@ export async function openIncident(
       url: monitorUrl,
       errorDetails: errorDetails,
     });
+
+    logger.info(
+      { incidentId: newIncident.id, monitorId, name: monitorName },
+      "Incident opened",
+    );
+
     return newIncident;
   } catch (error) {
     // Si otro proceso ya abrió el incidente, devolvemos el existente sin
@@ -73,19 +81,29 @@ export async function resolvedIncident(monitorId: number) {
         downtime: totalMinutesDown,
       },
     });
+
+    logger.info(
+      {
+        incidentId: incidentExisting.id,
+        monitorId,
+        downtimeMinutes: totalMinutesDown,
+      },
+      "Incident resolved automatically after recovery",
+    );
+
     return updateIncident;
   } catch (error) {
     throw new Error("Error updating the incident", { cause: error });
   }
 }
 
-export class IncidentNotFoundError extends Error {
+export class IncidentNotFoundError extends NotFoundError {
   constructor() {
     super("Incident not found");
   }
 }
 
-export class ResolutionAlreadyRecordedError extends Error {
+export class ResolutionAlreadyRecordedError extends ConflictError {
   constructor() {
     super("A resolution has already been recorded for this incident");
   }
@@ -154,13 +172,13 @@ export async function resolveIncidentWithLog(
       }
 
       const resolutionLog = await tx.resolutionLog.create({
-        data: {
-          rootCause,
-          actionTaken,
-          userId,
-          incidentId,
-        },
+        data: { rootCause, actionTaken, userId, incidentId },
       });
+
+      logger.info(
+        { incidentId, userId, closedNow },
+        "Human resolution recorded",
+      );
 
       return { incident: updatedIncident, resolutionLog, closedNow };
     });
@@ -171,6 +189,7 @@ export async function resolveIncidentWithLog(
     ) {
       throw error;
     }
+    logger.error({ err: error, incidentId }, "Error resolving the incident");
     throw new Error("Error resolving the incident", { cause: error });
   }
 }

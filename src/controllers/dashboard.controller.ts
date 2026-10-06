@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ZodError } from "zod";
+import { ZodError, type ZodType } from "zod";
 import {
   monitorsOperationalQuerySchema,
   incidentsOperationalQuerySchema,
@@ -13,142 +13,86 @@ import {
   getDashboardMetrics,
   getRecentInsights,
 } from "../services/dashboard.service.js";
+import { validationErrorFrom } from "../middlewares/error.middleware.js";
+
+/**
+ * Valida `req.query` contra un esquema Zod y traduce el fallo al mismo contrato
+ * de 400 que usa el middleware global de validación.
+ */
+const parseQuery = <T>(schema: ZodType<T>, query: unknown): T => {
+  const result = schema.safeParse(query);
+
+  if (!result.success) {
+    throw validationErrorFrom(
+      (result.error as ZodError).issues.map((issue) => ({
+        path: issue.path,
+        message: issue.message,
+      })),
+    );
+  }
+
+  return result.data;
+};
 
 export const getDashboardSummaryHandler = async (
   _req: Request,
   res: Response,
 ): Promise<void> => {
-  try {
-    const data = await getDashboardSummary();
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    console.error("Error fetching dashboard summary:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+  res.status(200).json({ success: true, data: await getDashboardSummary() });
 };
 
 export const getOperationalMonitorsHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  try {
-    const query = monitorsOperationalQuerySchema.parse(req.query);
-    const data = await getOperationalMonitors({
-      includeInactive: query.includeInactive,
-      limit: query.limit,
-    });
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors: error.issues.map((issue) => ({
-          field: issue.path[0],
-          message: issue.message,
-        })),
-      });
-      return;
-    }
-    console.error("Error fetching operational monitors:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+  const query = parseQuery(
+    monitorsOperationalQuerySchema,
+    req.query,
+  );
+
+  const data = await getOperationalMonitors({
+    includeInactive: query.includeInactive,
+    limit: query.limit,
+  });
+
+  res.status(200).json({ success: true, data });
 };
 
 export const getOperationalIncidentsHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  try {
-    const query = incidentsOperationalQuerySchema.parse(req.query);
-    const data = await getOperationalIncidents({
-      window: query.window,
-      monitorId: query.monitorId,
-      limit: query.limit,
-    });
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors: error.issues.map((issue) => ({
-          field: issue.path[0],
-          message: issue.message,
-        })),
-      });
-      return;
-    }
-    console.error("Error fetching operational incidents:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+  const query = parseQuery(incidentsOperationalQuerySchema, req.query);
+
+  const data = await getOperationalIncidents({
+    window: query.window,
+    monitorId: query.monitorId,
+    limit: query.limit,
+  });
+
+  res.status(200).json({ success: true, data });
 };
 
 export const getDashboardMetricsHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  try {
-    const query = metricsQuerySchema.parse(req.query);
-    const data = await getDashboardMetrics({
-      window: query.window,
-      bucket: query.bucket,
-      monitorId: query.monitorId,
-    });
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors: error.issues.map((issue) => ({
-          field: issue.path[0],
-          message: issue.message,
-        })),
-      });
-      return;
-    }
-    console.error("Error fetching dashboard metrics:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+  const query = parseQuery(metricsQuerySchema, req.query);
+
+  const data = await getDashboardMetrics({
+    window: query.window,
+    bucket: query.bucket,
+    monitorId: query.monitorId,
+  });
+
+  res.status(200).json({ success: true, data });
 };
 
 export const getRecentInsightsHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  try {
-    const query = insightsRecentQuerySchema.parse(req.query);
-    const data = await getRecentInsights(query.limit);
-    res.status(200).json({ success: true, data });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors: error.issues.map((issue) => ({
-          field: issue.path[0],
-          message: issue.message,
-        })),
-      });
-      return;
-    }
-    console.error("Error fetching recent insights:", error);
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+  const query = parseQuery(insightsRecentQuerySchema, req.query);
+
+  res.status(200).json({ success: true, data: await getRecentInsights(query.limit) });
 };

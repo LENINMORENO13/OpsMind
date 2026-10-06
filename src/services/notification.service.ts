@@ -2,6 +2,7 @@ import emitter from "../events/emitter.js";
 import { processIncidentInsight } from "./ai.service.js";
 import { getRecentIncidentsContext } from "./incident.service.js";
 import { formatHistoricalIncidents } from "../utils/prompt-formatters.util.js";
+import { logger } from "../lib/logger.js";
 
 emitter.on("incident-opened", async (payload) => {
   try {
@@ -13,6 +14,9 @@ emitter.on("incident-opened", async (payload) => {
       historicalContext,
     });
   } catch (error) {
-    console.error("Critical error in the AI background process:", error);
+    logger.error(
+      { err: error, incidentId: payload.incidentId },
+      "Critical error in the AI background process",
+    );
   }
 });

@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   getDashboardSummaryHandler,
   getOperationalMonitorsHandler,
@@ -29,7 +30,7 @@ const router = express.Router();
  *      500:
  *        description: Internal server error
  */
-router.get("/summary", verifyToken, getDashboardSummaryHandler);
+router.get("/summary", verifyToken, asyncHandler(getDashboardSummaryHandler));
 
 /**
  * @openapi
@@ -65,7 +66,7 @@ router.get("/summary", verifyToken, getDashboardSummaryHandler);
  *      500:
  *        description: Internal server error
  */
-router.get("/monitors", verifyToken, getOperationalMonitorsHandler);
+router.get("/monitors", verifyToken, asyncHandler(getOperationalMonitorsHandler));
 
 /**
  * @openapi
@@ -107,7 +108,7 @@ router.get("/monitors", verifyToken, getOperationalMonitorsHandler);
  *      500:
  *        description: Internal server error
  */
-router.get("/incidents", verifyToken, getOperationalIncidentsHandler);
+router.get("/incidents", verifyToken, asyncHandler(getOperationalIncidentsHandler));
 
 /**
  * @openapi
@@ -148,7 +149,7 @@ router.get("/incidents", verifyToken, getOperationalIncidentsHandler);
  *      500:
  *        description: Internal server error
  */
-router.get("/metrics", verifyToken, getDashboardMetricsHandler);
+router.get("/metrics", verifyToken, asyncHandler(getDashboardMetricsHandler));
 
 /**
  * @openapi
@@ -178,6 +179,6 @@ router.get("/metrics", verifyToken, getDashboardMetricsHandler);
  *      500:
  *        description: Internal server error
  */
-router.get("/insights", verifyToken, getRecentInsightsHandler);
+router.get("/insights", verifyToken, asyncHandler(getRecentInsightsHandler));
 
 export default router;

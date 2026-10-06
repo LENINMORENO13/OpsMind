@@ -2,6 +2,7 @@ import prisma from "../lib/prisma.js";
 import { analyzeStatus } from "./analyzer.service.js";
 import { check } from "./checker.service.js";
 import { openIncident, resolvedIncident } from "./incident.service.js";
+import { logger } from "../lib/logger.js";
 import type { Monitor, ServiceStatus, TrendStatus } from "@prisma/client";
 
 export const save = async (
@@ -95,7 +96,10 @@ export const executeMonitorCheck = async (monitor: Monitor) => {
 
     return { ...savedLog, message: errorDetails };
   } catch (error) {
-    console.error(`Error executing monitor check for ${monitor.name}:`, error);
+    logger.error(
+      { err: error, monitor: monitor.name, monitorId: monitor.id },
+      "Error executing monitor check",
+    );
     throw error;
   }
 };
