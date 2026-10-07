@@ -1,7 +1,7 @@
 # ============================================================
 # STAGE 1: Build frontend (React + Vite)
 # ============================================================
-FROM node:22-alpine AS frontend
+FROM node:26-alpine AS frontend
 
 WORKDIR /frontend
 
@@ -14,7 +14,7 @@ RUN npm run build
 # ============================================================
 # STAGE 2: Backend (Express + TS)
 # ============================================================
-FROM node:22-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 
