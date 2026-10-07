@@ -25,7 +25,7 @@
     "prisma",
     "postgresql"
   ],
-  "author": "Lenin Moreno <leninmoreno13@gmail.com> (https://github.com/LENINMORENO13)",
+  "author": "Lenin Moreno <mlenin922@gmail.com> (https://github.com/LENINMORENO13)",
   "license": "MIT",
   "description": "OpsMind — microservice monitoring and AI-assisted incident analysis (Express + TypeScript + Prisma + PostgreSQL + React).",
   "homepage": "https://github.com/LENINMORENO13/OpsMind#readme",
