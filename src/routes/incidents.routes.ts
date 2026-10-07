@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   validateParams,
   validateSchema,
@@ -31,7 +32,7 @@ const router = express.Router();
  *      500:
  *        description: Internal server error
  */
-router.get("/active", verifyToken, getOpenIncidents);
+router.get("/active", verifyToken, asyncHandler(getOpenIncidents));
 
 /**
  * @openapi
@@ -55,7 +56,7 @@ router.get("/active", verifyToken, getOpenIncidents);
  *       500:
  *         description: Internal server error
  */
-router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorIdSchema), getResolvedIncidents);
+router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorIdSchema), asyncHandler(getResolvedIncidents));
 
 /**
  * @openapi
@@ -108,7 +109,7 @@ router.post(
   verifyToken,
   validateParams(incidentIdParamsSchema),
   validateSchema(resolveIncidentSchema),
-  resolveIncident,
+  asyncHandler(resolveIncident),
 );
 
 export default router;

@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import prisma from "../lib/prisma.js";
 import { CriticalityLevel } from "@prisma/client";
+import { logger } from "../lib/logger.js";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -155,8 +156,9 @@ export const analyzeIncident = async (
 
     if (isRetryable && retries > 0) {
       const retryDelayMs = getRetryDelayMs();
-      console.warn(
-        `Gemini saturado o no disponible (Código detectado). Reintentando en ${retryDelayMs}ms... (${retries} intentos restantes)`,
+      logger.warn(
+        { monitor: monitorName, retriesRemaining: retries, retryDelayMs },
+        "Gemini saturated or unavailable, retrying",
       );
       await delay(retryDelayMs);
       return analyzeIncident(
@@ -168,7 +170,11 @@ export const analyzeIncident = async (
       );
     }
 
-    console.error("Error interno en aiService:", err.message || error);
+    logger.error(
+      { err, monitor: monitorName, retries },
+      "AI analysis unavailable, falling back to generic insight",
+    );
+
     return {
       causa_probable: "Análisis de IA no disponible temporalmente.",
       accion_recomendada: "Revisar los logs del contenedor manualmente.",
@@ -204,5 +210,9 @@ export const processIncidentInsight = async (payload: {
       historicalAnalysis: aiDiagnosis.historicalAnalysis,
     },
   });
-  console.log(`Insight guardado exitosamente para el monitor ${payload.name}`);
+
+  logger.info(
+    { incidentId: payload.incidentId, monitor: payload.name },
+    "Insight guardado exitosamente",
+  );
 };

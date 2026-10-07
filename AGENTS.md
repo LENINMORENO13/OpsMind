@@ -1,6 +1,6 @@
 # AGENTS.md
 
-OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-assisted incident analysis. PostgreSQL via Prisma 7, JWT auth, `node-cron` background checks, Google Gemini. No frontend. Prompts/README are in Spanish; code/comments mix Spanish and English.
+OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-assisted incident analysis. PostgreSQL via Prisma 7, JWT auth, `node-cron` background checks, Google Gemini. React SPA in `frontend/` served statically by Express from `frontend/dist` (`npm run build:frontend`; returns 503 JSON if not built). Prompts/README are in Spanish; code/comments mix Spanish and English.
 
 ## Commands
 
@@ -18,16 +18,16 @@ OpsMind: Express 5 + TypeScript (ESM) REST API for service monitoring and AI-ass
 - **Tests need a real PostgreSQL.** Under `NODE_ENV=test`, `src/lib/prisma.ts` uses `TEST_DATABASE_URL` (falls back to `DATABASE_URL`). The schema must already exist; run `npx prisma db push` first. Tests truncate with `deleteMany` and disconnect via `afterAll(() => prisma.$disconnect())`.
 - **Prisma CLI + client:** `prisma.config.ts` prefers `DIRECT_URL` over `DATABASE_URL` for CLI commands. There is no `postinstall`; run `npx prisma generate` after editing `prisma/schema.prisma` (CI does) or typecheck/build fails on the missing client. Tests provision the schema with `npx prisma db push` against a throwaway Postgres; **production uses `prisma migrate deploy`** (CD and Dockerfile `CMD`).
 - **`.env.example`** includes `DIRECT_URL` and `TEST_DATABASE_URL`, which `prisma.config.ts` and `src/lib/prisma.ts` read. Prod (Supabase) requires the direct IPv4 URL for `migrate deploy` and the pooler (`:6543`) for the app at runtime.
+- **Prisma `overrides` are mandatory:** `package.json` pins `mysql2` and `deepmerge-ts` via `overrides` because Prisma 7 ships vulnerable versions upstream. Never remove them and never run `npm audit fix --force` — it downgraded `prisma` 7→6, which broke `prisma.config.ts` (v7-only `env` export) and with it CI and Docker.
 - **Cron only runs outside tests:** `app.ts` calls `startCronJobs()` only when `NODE_ENV !== "test"` and after `app.listen`. The job runs every 5 min (`scheduler.service.ts`).
 - **AI is event-driven:** `incident.service.openIncident` emits `incident-opened`; the listener lives in `notification.service.ts`, imported for its side effect in `app.ts`. Removing/altering that import silently disables AI analysis.
 - **Status endpoints have side effects:** `GET /api/v1/monitors/status/all` and `/status/:site` run real checks via `executeMonitorCheck`, writing `Log` rows and potentially opening/resolving incidents and triggering Gemini. Don't hit them casually in tests or manual probes.
-- **`src/controllers/resolution.controller.ts` is an unfinished stub** (empty handler) and is not wired to any route, despite the `ResolutionLog` model existing.
 
 ## Architecture
 
 Flow: `scheduler.service` → `history.service.executeMonitorCheck` → `checker.service` (axios, 5s timeout) → `analyzer.service` (state + `TREND_MATRIX` → `ServiceStatus`/`TrendStatus`) → `prisma.log.create` → `incident.service` `openIncident`/`resolvedIncident` → emitter → `notification.service` → `ai.service` (Gemini structured JSON, persisted as `AIInsight`, with historical context from the last 5 resolved incidents).
 
-Layers: `routes/` (with OpenAPI JSDoc) → `controllers/` (thin req/res, delegate to services) → `services/` (business logic) → `lib/prisma.ts` singleton. Zod schemas in `src/schemas/`, applied via `validateSchema` / `validateParams` middleware. All routes are under `/api/v1/`; protected routes require `Authorization: Bearer <token>` (JWT payload `{ id, email }`).
+Layers: `routes/` (with OpenAPI JSDoc) → `controllers/` (thin req/res, delegate to services) → `services/` (business logic) → `lib/prisma.ts` singleton. Zod schemas in `src/schemas/`, applied via `validateSchema` / `validateParams` middleware. API routes live under `/api/v1/` and protected ones require `Authorization: Bearer <token>` (JWT payload `{ id, email }`); exceptions at the root: `/health` + `/health/ready` (public, no auth), `/api-docs` (Swagger) and the static SPA.
 
 Response envelope everywhere: `{ success, message?, error?, data? }`.
 

@@ -1,72 +1,82 @@
 # 🛡️ OpsMind — Microservice Monitoring & Incident Analysis
 
 ![CI/CD](https://github.com/LENINMORENO13/OpsMind/actions/workflows/main.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue.svg)](https://nodejs.org/)
+[![Security](https://img.shields.io/badge/security-policy-red.svg)](./SECURITY.md)
 
-OpsMind es una plataforma backend para monitoreo de servicios y gestión de incidentes, enfocada en disponibilidad, seguimiento de estados y análisis asistido por IA, con un panel web operativo integrado.
+OpsMind es una plataforma de monitoreo de servicios y gestión de incidentes con análisis asistido por IA: API REST en Node.js y TypeScript, workers en segundo plano, PostgreSQL, autenticación JWT y un panel web operativo (React) servido por la misma API. Cuando detecta una caída crea un incidente, genera un diagnóstico estructurado con Gemini y, al recuperarse el servicio, calcula el downtime y conserva el incidente como contexto histórico para futuros análisis.
 
-El proyecto utiliza una API REST, workers en segundo plano, autenticación JWT, PostgreSQL para persistencia, un sistema de incidentes con análisis histórico y un panel web (React) servido por la propia API.
-
----
-
-# 🎯 ¿Qué hace OpsMind?
-
-OpsMind monitorea periódicamente servicios registrados y registra sus cambios de estado.
-
-Cuando detecta una caída:
-
-1. Se crea un incidente.
-2. Se registra el inicio del incidente.
-3. Se dispara un evento para iniciar el análisis.
-4. Gemini genera un diagnóstico estructurado.
-5. El análisis se guarda junto con el incidente.
-6. Cuando el servicio se recupera, el incidente se marca como resuelto.
-7. Se calcula el tiempo de indisponibilidad.
-8. El incidente queda almacenado para utilizarlo como contexto histórico en futuros análisis.
-
-La IA funciona como una herramienta de análisis complementaria. La detección, creación y resolución de incidentes son responsabilidad del sistema de monitoreo.
+![Resumen operativo](https://github.com/user-attachments/assets/38529551-9517-49aa-8b38-743359032ff4)
 
 ---
 
-# 📚 Tabla de Contenidos
+# 🌐 Demo en vivo
 
-* [¿Qué hace OpsMind?](#-qué-hace-opsmind)
-* [Características](#-características-principales)
-* [Stack](#-stack-tecnológico)
-* [Arquitectura](#-arquitectura-general)
-* [API](#-api-endpoints)
-* [Incidentes](#-gestión-de-incidentes)
-* [Estados](#-estados-del-sistema)
-* [Instalación](#-instalación-y-ejecución)
-* [Testing](#-pruebas-automatizadas)
-* [IA](#-análisis-inteligente-con-ia)
-* [Evolución V1 → V2](#-evolución-v1--v2)
-* [Entorno desplegado](#-entorno-desplegado)
-* [Autor](#-autor)
+* **Panel web:** https://opsmind-e07b.onrender.com
+* **API + Swagger:** https://opsmind-e07b.onrender.com/api-docs
+
+## Acceso de prueba
+
+El panel ofrece una cuenta demo para explorar la plataforma sin registrarse:
+
+* **Credenciales:** `demo@opsmind.com` / `demo1234`
+* En el login, el botón **"Explorar con cuenta demo"** inicia sesión con un clic.
+* Se habilita con las variables opcionales `DEMO_EMAIL` y `DEMO_PASSWORD`; sin ellas el acceso demo queda deshabilitado.
+
+> Desplegado en Render (Native Node, `NODE_VERSION=22`), mismo origen para API y panel — sin CORS.
+
+---
+
+# 🚀 Quick Start
+
+## 1. Clonar e instalar
+
+```bash
+git clone https://github.com/LENINMORENO13/OpsMind.git
+cd OpsMind
+cp .env.example .env
+```
+
+Configura `JWT_SECRET` (obligatorio), `GEMINI_API_KEY` (análisis IA) y `POSTGRES_PASSWORD` (obligatoria para Docker) en `.env`. La conexión local a PostgreSQL usa el puerto `5433`.
+
+## 2. Levantar con Docker
+
+```bash
+docker compose up --build
+```
+
+* Panel web: http://localhost:3000
+* Swagger: http://localhost:3000/api-docs
+* PostgreSQL: puerto `5433` en el host
+
+```bash
+docker compose down
+```
+
+## 3. Desarrollo local (sin Docker)
+
+```bash
+# Terminal 1 — API
+npm run dev
+
+# Terminal 2 — Panel web (Vite, puerto 5173)
+cd frontend && npm run dev
+```
 
 ---
 
 # ✨ Características Principales
 
-* API REST con respuestas JSON
-* Autenticación mediante JWT
-* Monitoreo periódico de disponibilidad
-* Background workers con `node-cron`
-* Gestión del estado e historial de servicios
-* Persistencia con Prisma y PostgreSQL
-* Swagger/OpenAPI para documentación de la API
-* Contenerización con Docker
-* Integración y despliegue continuos con GitHub Actions (CI/CD)
-* Gestión del ciclo de vida de incidentes
-* Cálculo automático de downtime
-* Registro de soluciones humanas (root cause + acción) por incidente
-* Análisis de incidentes mediante Gemini
-* Contexto histórico basado en incidentes anteriores y soluciones humanas verificadas
-* Procesamiento de IA desacoplado mediante eventos
-* Validación SSRF (solo IPs públicas) al registrar monitores
-* Panel web operativo (React + TypeScript) servido por Express en el mismo origen
-* Dashboard con resumen, monitores, incidentes, métricas y insights IA
-* CRUD de monitores desde la interfaz web
-* Resolución de incidentes (HITL) desde la interfaz web
+* Monitoreo periódico de disponibilidad con workers `node-cron` e historial de estados
+* Gestión del ciclo de vida de incidentes con cálculo automático de downtime
+* Análisis de incidentes con Gemini (diagnóstico + sugerencia + criticidad), desacoplado por eventos y con contexto histórico de los últimos 5 incidentes resueltos
+* Registro de soluciones humanas verificadas (HITL: `rootCause` + `actionTaken`) por incidente
+* Autenticación JWT, rate limiting en auth, Helmet y validación SSRF (solo IPs públicas)
+* API REST con Swagger/OpenAPI, validación con Zod y envelope de respuesta consistente
+* Panel web operativo con CRUD de monitores y resolución de incidentes desde la interfaz
+* Health checks (`/health`, `/health/ready`) para orquestadores
+* Docker, CI/CD con GitHub Actions y despliegue continuo
 
 ---
 
@@ -91,11 +101,41 @@ La IA funciona como una herramienta de análisis complementaria. La detección, 
 | GitHub Actions   | CI/CD (integración y despliegue continuos) |
 | @google/genai    | Integración con Gemini |
 | React            | Panel web operativo (SPA) |
-| Vite             | Build del panel web |
-| Tailwind CSS     | Estilos del panel web |
-| React Router     | Rutas del panel web |
+| Vite             | Build del panel web    |
+| Tailwind CSS     | Estilos del panel web  |
+| React Router     | Rutas del panel web    |
 | Recharts         | Gráficos del panel web |
-| Lucide           | Iconos del panel web |
+| Lucide           | Iconos del panel web   |
+
+---
+
+# 📊 Panel operativo y métricas
+
+Vistas del panel (React SPA servida por Express en el mismo origen — sin CORS):
+
+* **Resumen** — monitores, incidentes, logs e insights en un vistazo
+* **Monitores** — CRUD completo desde la interfaz
+* **Incidentes** — activos con diagnóstico IA y resolución HITL
+* **Métricas** — series temporales con gráficos (Recharts) por ventana: 24h, 7d, 30d y 90d
+* **Insights** — análisis de IA recientes
+
+![Métricas — evolución temporal](https://github.com/user-attachments/assets/a13bcdcf-47df-4018-8049-16485fc79e4f)
+
+Auto-refresh por polling (30 s) con indicador de última actualización.
+
+---
+
+# 🤖 Análisis con IA
+
+Al detectarse una caída se crea el incidente y se emite el evento `incident-opened`; un listener desacoplado invoca Gemini, que devuelve un **diagnóstico estructurado**:
+
+* Diagnóstico, causa probable y acción recomendada
+* Nivel de criticidad (`LOW` → `CRITICAL`)
+* `historicalAnalysis` — origen del diagnóstico (incidente actual o contexto histórico)
+
+El prompt incorpora contexto de los últimos 5 incidentes resueltos del monitor, incluidas las soluciones humanas verificadas (`ResolutionLog`), sin que esto sustituya el análisis del incidente actual.
+
+Ante errores de Gemini se reintenta (hasta 3 veces con delay configurable) y existe un mecanismo de fallback: un fallo persistente del proveedor nunca interrumpe el flujo principal de gestión de incidentes. Requiere `GEMINI_API_KEY`.
 
 ---
 
@@ -160,6 +200,17 @@ Authorization: Bearer <token>
 
 ---
 
+## 🩺 Health checks
+
+Endpoints públicos (sin `Authorization`), pensados para sondas de orquestador y balanceador:
+
+| Método | Endpoint        | Descripción                                                                 |
+| ------ | --------------- | --------------------------------------------------------------------------- |
+| GET    | `/health`       | Liveness: el proceso responde. No consulta dependencias externas.           |
+| GET    | `/health/ready` | Readiness: verifica la conexión a PostgreSQL. Responde `503` si la base cae. |
+
+---
+
 ## 📈 Observabilidad
 
 | Método | Endpoint                        | Descripción         |
@@ -167,6 +218,8 @@ Authorization: Bearer <token>
 | GET    | `/api/v1/monitors/status/all`   | Estado general      |
 | GET    | `/api/v1/monitors/status/:site` | Estado por servicio |
 | GET    | `/api/v1/monitors/:id/history`  | Historial           |
+
+> **Nota:** `/status/all` y `/status/:site` ejecutan comandos reales de verificación y escriben en la base de datos.
 
 ---
 
@@ -190,139 +243,23 @@ Authorization: Bearer <token>
 
 ## 🚨 Incidentes
 
-La V2 introduce memoria persistente de incidentes y seguimiento de su ciclo de vida.
-
 | Método | Endpoint                                 | Descripción                                   |
 | ------ | ---------------------------------------- | --------------------------------------------- |
 | GET    | `/api/v1/incidents/active`               | Incidentes activos con diagnóstico IA         |
 | GET    | `/api/v1/incidents/monitor/:monitorId/resolved` | Historial de incidentes resueltos por monitor |
 | POST   | `/api/v1/incidents/:id/resolve`          | Registrar solución humana (`rootCause`, `actionTaken`) y cerrar el incidente según el estado del servicio |
 
-La respuesta de `/api/v1/incidents/active` incluye, en cada `aiInsight`:
-
-* `analysis` — diagnóstico de la IA
-* `suggestion` — recomendación técnica
-* `criticality` — nivel de criticidad
-* `historicalAnalysis` — origen del diagnóstico (incidente actual, histórico(s) relevante(s) o IA no disponible)
-* `createdAt` — timestamp del análisis
+La respuesta de `/api/v1/incidents/active` incluye, en cada `aiInsight`: `analysis` (diagnóstico), `suggestion` (recomendación), `criticality`, `historicalAnalysis` (origen del diagnóstico) y `createdAt`.
 
 ### Resolución manual de incidentes
 
-`POST /api/v1/incidents/:id/resolve` (autenticado) registra la solución aplicada por un operador. El cierre del incidente depende del estado real del servicio:
+`POST /api/v1/incidents/:id/resolve` (autenticado) registra la solución aplicada por un operador:
 
 * Incidente `OPEN` + monitor sano (`UP`/`DEGRADED`) → se cierra el incidente (`closedNow: true`).
-* Incidente `OPEN` + monitor caído → se registra la solución pero **el incidente permanece abierto** hasta que el servicio se recupere (`RECOVERED`).
-* Incidente `RESOLVED` (recuperado automáticamente) → solo se adjunta el log de la solución registrada.
+* Incidente `OPEN` + monitor caído → se registra la solución pero **el incidente permanece abierto** hasta la recuperación (`RECOVERED`).
+* Incidente `RESOLVED` → solo se adjunta el log de la solución.
 
-Errores: `400` (validación), `401` (no autorizado), `404` (incidente inexistente), `409` (ya existe solución registrada para el incidente).
-
-### Fase 1 — Incident Memory
-
-* Persistencia de incidentes
-* Seguimiento de incidentes activos y resueltos
-* Cálculo automático de downtime
-* Diagnóstico mediante IA
-* Procesamiento de IA desacoplado mediante eventos
-
-### Flujo de incidentes
-
-```text
-DROP_DETECTED
-      ↓
-Incident created
-      ↓
-incident-opened
-      ↓
-Gemini analysis
-      ↓
-AIInsight persisted
-      ↓
-RECOVERED
-      ↓
-Incident resolved
-      ↓
-Downtime calculated
-```
-
----
-
-# 📊 Estados del Sistema
-
-## ServiceStatus
-
-* `UP` → funcionando
-* `DEGRADED` → lento o inestable
-* `DOWN` → caído
-* `PENDING` → sin datos
-
-## TrendStatus
-
-* `STABLE` → estable
-* `RECOVERED` → recuperación
-* `DROP_DETECTED` → caída detectada
-* `OFFLINE` → caído persistentemente
-
-## CriticalityLevel
-
-* `LOW`
-* `MEDIUM`
-* `HIGH`
-* `CRITICAL`
-
-## IncidentStatus
-
-* `OPEN` → incidente activo
-* `RESOLVED` → incidente resuelto
-* `IGNORED` → incidente descartado
-
----
-
-# 🚀 Instalación y Ejecución
-
-## 1. Clonar repositorio
-
-```bash
-git clone https://github.com/LENINMORENO13/OpsMind.git
-cd OpsMind
-```
-
-## 2. Variables de entorno
-
-```bash
-cp .env.example .env
-```
-
-Configura valores reales para `JWT_SECRET` (obligatorio para la autenticación JWT), `GEMINI_API_KEY` y `POSTGRES_PASSWORD` (obligatoria para `docker compose up`) antes de iniciar la aplicación. `POSTGRES_USER` y `POSTGRES_DB` son opcionales (por defecto `lenin_dev` y `opsmind_db`). La conexión local a PostgreSQL es por el puerto `5433`.
-
-## 3. Docker
-
-```bash
-docker compose up --build
-```
-
-El multi-stage build compila el panel web (`frontend/dist`) y luego la API:
-
-* Panel web: http://localhost:3000
-* Swagger: http://localhost:3000/api-docs
-* PostgreSQL: `db:5432`
-
-## 4. Detener
-
-```bash
-docker compose down
-```
-
-## 5. Desarrollo local (sin Docker)
-
-El panel web en modo desarrollo usa Vite con proxy hacia la API (`/api` y `/api-docs`):
-
-```bash
-# Terminal 1 — API
-npm run dev
-
-# Terminal 2 — Panel web (Vite, puerto 5173)
-cd frontend && npm run dev
-```
+Errores: `400` (validación), `401` (no autorizado), `404` (incidente inexistente), `409` (ya existe solución registrada).
 
 ---
 
@@ -342,167 +279,34 @@ Incluye pruebas para:
 * Resolución manual con `ResolutionLog` (`closedNow`, duplicado `409`, incidente inexistente `404`)
 * Análisis mediante IA (`analyzeIncident`, reintentos y fallback)
 * Actualización de estado por tendencias (`TREND_MATRIX`)
-* Protección SSRF y validación de URLs públicas
+* Protección SSRF y validaciones de URLs públicas
 * Cadencia programada y throttling por ventana del scheduler
 * Formateo y sanitización del contexto histórico (prompt-formatters)
 * Endpoints del dashboard operativo (summary, monitors, incidents, metrics, insights)
 
 ---
 
-# 🤖 Análisis Inteligente con IA
+# 📊 Estados del Sistema
 
-OpsMind utiliza Gemini como herramienta de análisis para generar un diagnóstico estructurado a partir de la información del incidente.
-
-El análisis puede incorporar contexto de incidentes históricos —incluyendo las soluciones humanas verificadas (`ResolutionLog`) registradas vía `POST /api/v1/incidents/:id/resolve`— pero el incidente actual permanece como fuente principal del diagnóstico.
-
-El análisis incluye:
-
-* Diagnóstico
-* Causa probable
-* Acción recomendada
-* Nivel de criticidad
-* Análisis histórico (origen del diagnóstico)
-
-La IA se ejecuta de forma desacoplada mediante eventos:
-
-```text
-IncidentService
-      ↓
-incident-opened
-      ↓
-getRecentIncidentsContext (últimos 5 resueltos + resolutionLog)
-      ↓
-formatHistoricalIncidents (JSON sanitizado + human_verified_resolution)
-      ↓
-AIService
-      ↓
-Gemini (prompt con contexto histórico + reglas)
-      ↓
-AIInsight (analysis, suggestion, criticality, historicalAnalysis)
-```
-
-El resultado utiliza un esquema estructurado para mantener compatibilidad con el modelo de datos.
-
-```bash
-GEMINI_API_KEY=tu_key
-```
-
-## Reglas de diagnóstico
-
-* El incidente actual es la fuente principal del diagnóstico.
-* Los históricos se usan solo si aportan evidencia relevante.
-* Compartir el mismo código o mensaje de error no implica por sí solo un patrón recurrente.
-* No se inventan IDs ni información no verificada.
-* `historicalAnalysis` explica explícitamente de dónde proviene el diagnóstico.
-* Las soluciones humanas verificadas (`human_verified_resolution`) son evidencia de alta confianza acotada a ese incidente y entorno; no son una verdad universal ni deben generalizarse.
-* Está prohibido copiar una solución humana a ciegas: si el incidente actual presenta variaciones significativas (distinto código, causa aparente o escenario), se descarta esa solución y se diagnostica solo con el incidente actual.
-* Si una solución humana se usa o se descarta, `historicalAnalysis` debe justificar explícitamente por qué las condiciones coinciden o difieren.
-
-## Manejo de errores de IA
-
-El servicio de IA realiza reintentos ante errores de comunicación con Gemini: hasta 3 reintentos con el delay configurado por el servicio.
-
-Si Gemini continúa fallando, el servicio cuenta con un mecanismo de fallback para completar el análisis.
-
-De esta forma, un fallo persistente del proveedor de IA no interrumpe el flujo principal de gestión de incidentes.
+Enums principales (detalle completo en Swagger, `/api-docs`): `ServiceStatus` (`UP`, `DEGRADED`, `DOWN`, `PENDING`), `TrendStatus` (`STABLE`, `RECOVERED`, `DROP_DETECTED`, `OFFLINE`), `IncidentStatus` (`OPEN`, `RESOLVED`, `IGNORED`) y `CriticalityLevel` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
 
 ---
 
-# 🔄 Evolución V1 → V2
+# 🔄 Roadmap
 
-## V1 — Monitoring Foundation
-
-La primera versión establece la base de monitoreo y observabilidad:
-
-* [x] API REST modular
-* [x] Health monitoring
-* [x] Service status
-* [x] Service history
-* [x] JWT authentication
-* [x] Background workers
-* [x] Swagger/OpenAPI
-* [x] Docker
-* [x] Testing
-* [x] Continuous Integration
-* [x] AI analysis
+* ✅ **V1** — Monitoreo, JWT, workers, Docker, CI/CD y análisis IA
+* ✅ **V2** — Memoria de incidentes, contexto histórico, HITL y panel operativo (Fases 1-4)
+* ⏳ **Fase 5** — Mejora continua del AI Engine
 
 ---
 
-## V2 — Incident Intelligence
+# 📄 Licencia
 
-La segunda versión amplía OpsMind desde el monitoreo de servicios hacia la gestión de incidentes y el análisis basado en contexto histórico.
-
-### Fase 1 — Incident Memory ✅
-
-* [x] Persistencia de incidentes
-* [x] Ciclo de vida del incidente
-* [x] Cálculo de downtime
-* [x] AIInsight persistente
-* [x] IA desacoplada por eventos
-* [x] API de incidentes activos y resueltos
-
-### Fase 2 — Pattern Detection ✅
-
-* [x] Recuperación de incidentes históricos resueltos (últimos 5 por monitor)
-* [x] Formateo y sanitización de contexto histórico (prompt-formatters)
-* [x] Integración del contexto histórico en el prompt de Gemini
-* [x] Campo `historicalAnalysis` en el esquema AIInsight
-* [x] Reglas estrictas de diagnóstico (actual es la fuente principal; mismo error ≠ patrón)
-* [x] `historicalAnalysis` expuesto en el endpoint de incidentes activos
-
-### Fase 3 — Recommendation Engine & Human-in-the-Loop (HITL) ✅
-
-* [x] Endpoint `POST /api/v1/incidents/:id/resolve` para registrar la solución humana (`rootCause`, `actionTaken`)
-* [x] Modelo `ResolutionLog` (1:1 con el incidente, ligado al usuario que resuelve)
-* [x] Cierre desacoplado del estado del incidente: OPEN + monitor sano → cierra; OPEN + monitor caído → espera `RECOVERED`; RESOLVED → solo adjunta el log
-* [x] Validación de resolución: `404` incidente inexistente y `409` solución ya registrada
-* [x] Soluciones humanas verificadas incorporadas al contexto histórico (`human_verified_resolution`)
-* [x] Reglas defensivas en el prompt: prohibido copiar soluciones humanas a ciegas
-
-### Fase 4 — Operational Dashboard ✅
-
-* [x] Endpoints de dashboard de solo lectura (`summary`, `monitors`, `incidents`, `metrics`, `insights`) sin side effects
-* [x] Panel web React (SPA) servido por Express en el mismo origen (sin CORS)
-* [x] Vistas: resumen, monitores, incidentes, métricas con gráficos (Recharts) e insights IA
-* [x] Datos operativos por ventanas (24h, 7d, 30d, 90d)
-* [x] CRUD de monitores desde la interfaz web (crear, editar, eliminar)
-* [x] Resolución de incidentes (HITL) desde la interfaz web
-* [x] Autenticación y protección de rutas en el panel (JWT)
-
-### Próximas fases
-
-Las siguientes fases están orientadas a ampliar el uso de la información histórica y facilitar el análisis y seguimiento de incidentes.
-
-* **Fase 5 — AI Engine Continuous Improvement**
-
----
-
-# 🌐 Entorno desplegado
-
-La API y el panel web están desplegados en Render (mismo origen):
-
-* Panel web: https://opsmind-e07b.onrender.com
-* API + Swagger: https://opsmind-e07b.onrender.com/api-docs
-
-El servicio de Render es **Native Node** (no Docker). Su **Build Command** debe render backend y frontend; el **Start Command** aplica migraciones y arranca la API:
+Este proyecto está bajo la licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para ver los términos completos.
 
 ```
-npm install && npx prisma generate && npm run build:all
-npx prisma migrate deploy && npm start
+Copyright (c) 2026 Lenin Moreno
 ```
-
-> **Nota de runtime:** el proyecto apunta a **Node.js 22 LTS** (coincide con `Dockerfile` y CI). En Render, fijar la variable de entorno `NODE_VERSION=22` para alinear el runtime con CI/Docker.
-
-Si el frontend no está compilado, la app responde `503` con JSON en rutas no-API en vez de fallar.
-
-## Acceso de prueba
-
-El panel ofrece un acceso demo para quienes quieran explorar la plataforma sin registrarse:
-
-* **Credenciales:** `demo@opsmind.com` / `demo1234`
-* En el login aparece el botón **"Explorar con cuenta demo"** que inicia la sesión con un clic.
-* La cuenta se auto-crea de forma idempotente al arrancar si no existe (`upsert`).
-* Se habilita configurando (opcional) `DEMO_EMAIL` y `DEMO_PASSWORD` en el entorno. Sin estos valores, el acceso demo queda deshabilitado y el login es normal.
 
 ---
 
