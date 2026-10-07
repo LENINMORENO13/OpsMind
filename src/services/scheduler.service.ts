@@ -1,10 +1,15 @@
 import prisma from "../lib/prisma.js";
 import cron from "node-cron";
 import { executeMonitorCheck } from "./history.service.js";
+import { logger } from "../lib/logger.js";
+
+const CRON_EXPRESSION = "*/5 * * * *";
 
 export const startCronJobs = (): void => {
-  cron.schedule("*/5 * * * *", async () => {
-    console.log("Starting automatic monitor checks...");
+  logger.info({ expression: CRON_EXPRESSION }, "Scheduler started");
+
+  cron.schedule(CRON_EXPRESSION, async () => {
+    logger.debug("Starting automatic monitor checks...");
 
     try {
       // isActive decide si el monitor se evalúa.
@@ -37,15 +42,21 @@ export const startCronJobs = (): void => {
 
           await executeMonitorCheck(monitor);
 
-          console.log(`Check complete for: ${monitor.name}`);
+          logger.debug({ monitor: monitor.name }, "Check complete");
         } catch (error) {
-          const err = error as Error;
-          console.error(`Error checking ${monitor.name}:`, err.message);
+          logger.error(
+            { err: error, monitor: monitor.name, monitorId: monitor.id },
+            "Error checking monitor",
+          );
         }
       }
-      console.log("Automatic monitor check cycle finished.");
+
+      logger.debug(
+        { checked: monitors.length },
+        "Automatic monitor check cycle finished",
+      );
     } catch (error) {
-      console.error("Critical error in background task:", error);
+      logger.error({ err: error }, "Critical error in background task");
     }
   });
 };

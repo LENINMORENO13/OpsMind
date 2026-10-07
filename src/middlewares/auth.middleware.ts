@@ -1,44 +1,47 @@
 import jwt from "jsonwebtoken";
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
+import { UnauthorizedError } from "./error.middleware.js";
 
 export interface CustomJwtPayload {
   id: string;
   email: string;
 }
 
-export interface AunthenticatedRequest extends Request {
+export interface AunthenticatedRequest<
+  Params = Record<string, string>,
+  ResBody = unknown,
+  ReqBody = unknown,
+> extends Request<Params, ResBody, ReqBody> {
   user?: CustomJwtPayload;
 }
 
-export const verifyToken = async (
+/**
+ * Verifica el JWT del header `Authorization: Bearer <token>` e inyecta
+ * `req.user = { id, email }`. Los fallos se lanzan como `UnauthorizedError` para
+ * que el manejador global produzca un 401 con el envelope estándar.
+ */
+export const verifyToken = (
   req: AunthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction,
-) => {
+): void => {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({
-      success: false,
-      error: "Access denied. Token not provided.",
-    });
+    next(new UnauthorizedError("Access denied. Token not provided."));
+    return;
   }
 
   const token = header.split(" ")[1];
 
   try {
-    const verify = jwt.verify(
+    req.user = jwt.verify(
       token,
       process.env.JWT_SECRET!,
     ) as CustomJwtPayload;
 
-    req.user = verify;
-
     next();
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: "Invalid token",
-    });
+  } catch {
+    next(new UnauthorizedError("Invalid token"));
   }
 };

@@ -1,8 +1,13 @@
 import bcrypt from "bcryptjs";
 import prisma from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
-import { DEMO_PASSWORD, DEMO_EMAIL, isDemoEnabled } from "../services/demo-user.service.js";
+import { getDemoConfig } from "../services/demo-user.service.js";
 import type { Request, Response } from "express";
+import {
+  BadRequestError,
+  UnauthorizedError,
+} from "../middlewares/error.middleware.js";
+import { logger } from "../lib/logger.js";
 
 export interface RegisterDTO {
   email: string;
@@ -12,117 +17,76 @@ export interface RegisterDTO {
 export const register = async (
   req: Request<{}, {}, RegisterDTO>,
   res: Response,
-) => {
+): Promise<void> => {
   const { email, password } = req.body;
+
+  const userExists = await prisma.user.findUnique({ where: { email } });
+  if (userExists) {
+    throw new BadRequestError("User with this email already exists");
+  }
+
   try {
-    const userExists = await prisma.user.findUnique({
-      where: { email },
-    });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        error: "User with this email already exists",
-      });
-    }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-      },
+      data: { email, password: hashedPassword },
     });
+
     res.status(201).json({
       success: true,
       message: "User created successfully",
-      data: {
-        user: user.id,
-        email,
-      },
+      data: { user: user.id, email },
     });
   } catch (error) {
-    const err = error as Error;
-    console.error("Error creating user:", err);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create user",
-    });
+    logger.error({ err: error, email }, "Error creating user");
+    throw error;
   }
 };
 
 export const login = async (
   req: Request<{}, {}, RegisterDTO>,
   res: Response,
-) => {
+): Promise<void> => {
   const { email, password } = req.body;
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: "Unauthorized",
-      });
-    }
-    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: "Unauthorized",
-      });
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new UnauthorizedError();
     }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedError();
+    }
+
     const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-      },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET!,
       { expiresIn: "1h" },
     );
 
-    return res.status(200).json({
-      success: true,
-      data: token,
-    });
+    res.status(200).json({ success: true, data: token });
   } catch (error) {
-    const err = error as Error;
-    console.error(err);
-    return res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
+    // UnauthorizedError es una señal de credenciales inválidas, no una falla
+    // del sistema: se propaga al handler global sin loguear ruido.
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+    logger.error({ err: error, email }, "Error during login");
+    throw error;
   }
 };
 
-export const getDemoCredentials = async (
-  _req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    // Exponer las credenciales demo es intencional: permiten probar el panel
-    // de forma pública. Sin env configurado, se devuelve enabled:false para
-    // que la UI no muestre el acceso de prueba ni filtre credenciales.
-    res.status(200).json({
-      success: true,
-      data: isDemoEnabled()
-        ? {
-            enabled: true,
-            email: DEMO_EMAIL,
-            password: DEMO_PASSWORD,
-          }
-        : {
-            enabled: false,
-            email: null,
-            password: null,
-          },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Internal server error",
-    });
-  }
+/**
+ * Expone las credenciales de la cuenta de prueba solo cuando el despliegue las
+ * habilita de forma explícita. Sin `DEMO_EMAIL`/`DEMO_PASSWORD` devuelve
+ * `enabled: false` y no filtra ningún valor.
+ */
+export const getDemoCredentials = (_req: Request, res: Response): void => {
+  res.status(200).json({
+    success: true,
+    data: getDemoConfig(),
+  });
 };

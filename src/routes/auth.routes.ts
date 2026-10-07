@@ -1,5 +1,6 @@
 import express from "express";
 import { register, login, getDemoCredentials } from "../controllers/auth.controller.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { validateSchema } from "../middlewares/validator.middleware.js";
 import { authRateLimiter } from "../middlewares/rateLimit.middleware.js";
 import { registerSchema, loginSchema } from "../schemas/auth.schemas.js";
@@ -59,7 +60,7 @@ router.get("/demo", getDemoCredentials);
  *       500:
  *         description: Internal server error
  */
-router.post("/register", authRateLimiter, validateSchema(registerSchema), register);
+router.post("/register", authRateLimiter, validateSchema(registerSchema), asyncHandler(register));
 
 // Iniciar sesión y obtener token (POST /api/v1/auth/login)
 /**
@@ -105,6 +106,6 @@ router.post("/register", authRateLimiter, validateSchema(registerSchema), regist
  *       500:
  *         description: Internal server error
  */
-router.post("/login", authRateLimiter, validateSchema(loginSchema), login);
+router.post("/login", authRateLimiter, validateSchema(loginSchema), asyncHandler(login));
 
 export default router;

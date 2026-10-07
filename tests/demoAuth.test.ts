@@ -1,7 +1,14 @@
 import request from "supertest";
 import type { Express } from "express";
 import prisma from "../src/lib/prisma.js";
-import { ensureDemoUser, DEMO_EMAIL, DEMO_PASSWORD } from "../src/services/demo-user.service.js";
+import {
+  ensureDemoUser,
+  getDemoConfig,
+  isDemoEnabled,
+} from "../src/services/demo-user.service.js";
+
+const DEMO_EMAIL = "demo@opsmind.com";
+const DEMO_PASSWORD = "demo1234";
 
 describe("Acceso demo - auto-creación y endpoint público", () => {
   let app: Express;
@@ -10,8 +17,8 @@ describe("Acceso demo - auto-creación y endpoint público", () => {
 
   beforeAll(async () => {
     // Activa el modo demo configurando el env antes de importar la app
-    process.env.DEMO_EMAIL = "demo@opsmind.com";
-    process.env.DEMO_PASSWORD = "demo1234";
+    process.env.DEMO_EMAIL = DEMO_EMAIL;
+    process.env.DEMO_PASSWORD = DEMO_PASSWORD;
     app = (await import("../src/app.js")).default;
   });
 
@@ -30,12 +37,46 @@ describe("Acceso demo - auto-creación y endpoint público", () => {
   });
 
   beforeEach(async () => {
-    await prisma.user.deleteMany({ where: { email: "demo@opsmind.com" } });
+    await prisma.user.deleteMany({ where: { email: DEMO_EMAIL } });
+  });
+
+  it("No debe tener credenciales demo por defecto en el código", () => {
+    const prevEmail = process.env.DEMO_EMAIL;
+    const prevPassword = process.env.DEMO_PASSWORD;
+    delete process.env.DEMO_EMAIL;
+    delete process.env.DEMO_PASSWORD;
+
+    try {
+      expect(isDemoEnabled()).toBe(false);
+      expect(getDemoConfig()).toEqual({
+        enabled: false,
+        email: null,
+        password: null,
+      });
+    } finally {
+      if (prevEmail !== undefined) process.env.DEMO_EMAIL = prevEmail;
+      if (prevPassword !== undefined) process.env.DEMO_PASSWORD = prevPassword;
+    }
+  });
+
+  it("Debería ser un no-op cuando el modo demo está deshabilitado", async () => {
+    const prevEmail = process.env.DEMO_EMAIL;
+    const prevPassword = process.env.DEMO_PASSWORD;
+    delete process.env.DEMO_EMAIL;
+    delete process.env.DEMO_PASSWORD;
+
+    try {
+      await expect(ensureDemoUser()).resolves.toBe(false);
+      await expect(prisma.user.count({ where: { email: "" } })).resolves.toBe(0);
+    } finally {
+      if (prevEmail !== undefined) process.env.DEMO_EMAIL = prevEmail;
+      if (prevPassword !== undefined) process.env.DEMO_PASSWORD = prevPassword;
+    }
   });
 
   it("Debería auto-crear la cuenta demo de forma idempotente (sin duplicados)", async () => {
-    await ensureDemoUser();
-    await ensureDemoUser();
+    await expect(ensureDemoUser()).resolves.toBe(true);
+    await expect(ensureDemoUser()).resolves.toBe(true);
 
     const count = await prisma.user.count({
       where: { email: DEMO_EMAIL },
@@ -62,8 +103,8 @@ describe("Acceso demo - auto-creación y endpoint público", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data).toMatchObject({
       enabled: true,
-      email: "demo@opsmind.com",
-      password: "demo1234",
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
     });
   });
 
@@ -78,7 +119,11 @@ describe("Acceso demo - auto-creación y endpoint público", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.enabled).toBe(false);
+      expect(response.body.data).toEqual({
+        enabled: false,
+        email: null,
+        password: null,
+      });
     } finally {
       if (prevEmail !== undefined) process.env.DEMO_EMAIL = prevEmail;
       if (prevPassword !== undefined) process.env.DEMO_PASSWORD = prevPassword;

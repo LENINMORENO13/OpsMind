@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   validateSchema,
   validateParams,
@@ -37,7 +38,7 @@ const router = express.Router();
  *      500:
  *        description: Internal server error
  */
-router.get("/", verifyToken, getMonitors);
+router.get("/", verifyToken, asyncHandler(getMonitors));
 
 
 // Crear un monitor (POST /api/v1/monitors)
@@ -72,7 +73,7 @@ router.get("/", verifyToken, getMonitors);
  *      500:
  *        description: Internal server error
  */
-router.post("/", verifyToken, validateSchema(createMonitorSchema), createMonitors);
+router.post("/", verifyToken, validateSchema(createMonitorSchema), asyncHandler(createMonitors));
 
 // Actualizar un monitor (PATCH /api/v1/monitors/:id)
 /**
@@ -108,7 +109,7 @@ router.post("/", verifyToken, validateSchema(createMonitorSchema), createMonitor
  *      500:
  *        description: Internal server error
  */
-router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchema(updateMonitorSchema), updateMonitors);
+router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchema(updateMonitorSchema), asyncHandler(updateMonitors));
 
 // Eliminar un monitor (DELETE /api/v1/monitors/:id)
 /**
@@ -134,7 +135,7 @@ router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchem
  *      500:
  *        description: Internal server error
  */
-router.delete("/:id", verifyToken, validateParams(monitorIdSchema), deleteMonitors);
+router.delete("/:id", verifyToken, validateParams(monitorIdSchema), asyncHandler(deleteMonitors));
 
 // --- RUTAS DE ESTADO/CHECKER ---
 
@@ -152,7 +153,7 @@ router.delete("/:id", verifyToken, validateParams(monitorIdSchema), deleteMonito
  *      500:
  *        description: Internal server error
  */
-router.get("/status/all", verifyToken, getStatus);
+router.get("/status/all", verifyToken, asyncHandler(getStatus));
 
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 /**
@@ -176,7 +177,7 @@ router.get("/status/all", verifyToken, getStatus);
  *      500:
  *        description: Internal server error
  */
-router.get("/status/:site", verifyToken, getStatusOne);
+router.get("/status/:site", verifyToken, asyncHandler(getStatusOne));
 
 //Obtener los ultimos 10 logs
 /**
@@ -200,6 +201,6 @@ router.get("/status/:site", verifyToken, getStatusOne);
  *      500:
  *        description: Internal server error
  */
-router.get("/:id/history", verifyToken, validateParams(monitorIdSchema), getMonitorHistory);
+router.get("/:id/history", verifyToken, validateParams(monitorIdSchema), asyncHandler(getMonitorHistory));
 
 export default router;
