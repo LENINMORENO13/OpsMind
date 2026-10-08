@@ -29,13 +29,47 @@ logger.info(
   "--- Monitoring System ---",
 );
 
-app.use(helmet({ contentSecurityPolicy: false }));
+// Render/Nginx forward X-Forwarded-For; sin esto express-rate-limit vería la
+// IP del proxy (una sola para todos) y bloquearía/liberaría a todos a la vez.
+app.set("trust proxy", 1);
+
+// CSP mínima para el SPA (Vite produce assets hasheados). La primera fidelidad
+// del servidor es self-origin; 'unsafe-inline' en style cubre atributos style
+// que React inyecta vía DOM y data: los iconos/fuentes embebidos.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        fontSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+app.use(
+  "/api-docs",
+  (_req: Request, res: Response, next: NextFunction) => {
+    // Swagger-ui inyecta sus estilos/scripts inline y quedaría roto con la CSP
+    // global; se descarta la cabecera solo para esta ruta de documentación.
+    res.removeHeader("Content-Security-Policy");
+    next();
+  },
+  swaggerUI.serve,
+  swaggerUI.setup(swaggerSpec),
+);
 app.use("/health", healthRoutes);
 app.use("/api/v1/monitors", routes);
 app.use("/api/v1/auth", authRoutes);
@@ -65,6 +99,17 @@ app.use(errorHandler);
 
 if (process.env.NODE_ENV !== "test") {
   const PORT: number | string = process.env.PORT || 3000;
+
+  // Fail-fast: sin JWT_SECRET no hay autenticación posible; mejor abortar que
+  // arrancar con toda la API de auth rota silenciosamente.
+  if (!process.env.JWT_SECRET) {
+    logger.fatal("JWT_SECRET is required but was not provided. Aborting startup.");
+    process.exit(1);
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    logger.warn("JWT_SECRET is shorter than 32 characters; use a long, random secret.");
+  }
+
   app.listen(PORT, () => {
     logger.info({ port: PORT }, `Servidor corriendo en el puerto ${PORT}`);
     // Auto-crea la cuenta demo (idempotente) si las credenciales demo están

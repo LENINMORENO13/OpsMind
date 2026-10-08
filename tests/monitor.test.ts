@@ -14,12 +14,12 @@ describe("API de Monitores - Endpoints de Integración", () => {
 
     await request(app).post("/api/v1/auth/register").send({
       email: "pepito@email.com",
-      password: "ops123",
+      password: "ops12345",
     });
 
     const loginRequest = await request(app).post("/api/v1/auth/login").send({
       email: "pepito@email.com",
-      password: "ops123",
+      password: "ops12345",
     });
 
     token = loginRequest.body.data;

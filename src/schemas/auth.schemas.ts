@@ -7,7 +7,7 @@ export const loginSchema = z.object({
     .trim(),
   password: z
     .string({ message: "The password is required" })
-    .min(6, { message: "The password must be at least 6 characters" }),
+    .min(8, { message: "The password must be at least 8 characters" }),
 });
 
 export const registerSchema = loginSchema;

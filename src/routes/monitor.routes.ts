@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { requireNonDemo } from "../middlewares/requireNonDemo.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   validateSchema,
@@ -73,7 +74,7 @@ router.get("/", verifyToken, asyncHandler(getMonitors));
  *      500:
  *        description: Internal server error
  */
-router.post("/", verifyToken, validateSchema(createMonitorSchema), asyncHandler(createMonitors));
+router.post("/", verifyToken, requireNonDemo, validateSchema(createMonitorSchema), asyncHandler(createMonitors));
 
 // Actualizar un monitor (PATCH /api/v1/monitors/:id)
 /**
@@ -109,7 +110,7 @@ router.post("/", verifyToken, validateSchema(createMonitorSchema), asyncHandler(
  *      500:
  *        description: Internal server error
  */
-router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchema(updateMonitorSchema), asyncHandler(updateMonitors));
+router.patch("/:id", verifyToken, requireNonDemo, validateParams(monitorIdSchema), validateSchema(updateMonitorSchema), asyncHandler(updateMonitors));
 
 // Eliminar un monitor (DELETE /api/v1/monitors/:id)
 /**
@@ -135,7 +136,7 @@ router.patch("/:id", verifyToken, validateParams(monitorIdSchema), validateSchem
  *      500:
  *        description: Internal server error
  */
-router.delete("/:id", verifyToken, validateParams(monitorIdSchema), asyncHandler(deleteMonitors));
+router.delete("/:id", verifyToken, requireNonDemo, validateParams(monitorIdSchema), asyncHandler(deleteMonitors));
 
 // --- RUTAS DE ESTADO/CHECKER ---
 
@@ -153,7 +154,7 @@ router.delete("/:id", verifyToken, validateParams(monitorIdSchema), asyncHandler
  *      500:
  *        description: Internal server error
  */
-router.get("/status/all", verifyToken, asyncHandler(getStatus));
+router.get("/status/all", verifyToken, requireNonDemo, asyncHandler(getStatus));
 
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 /**
@@ -177,7 +178,7 @@ router.get("/status/all", verifyToken, asyncHandler(getStatus));
  *      500:
  *        description: Internal server error
  */
-router.get("/status/:site", verifyToken, asyncHandler(getStatusOne));
+router.get("/status/:site", verifyToken, requireNonDemo, asyncHandler(getStatusOne));
 
 //Obtener los ultimos 10 logs
 /**
