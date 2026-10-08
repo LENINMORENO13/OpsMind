@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { requireNonDemo } from "../middlewares/requireNonDemo.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   validateParams,
@@ -107,6 +108,7 @@ router.get("/monitor/:monitorId/resolved", verifyToken, validateParams(monitorId
 router.post(
   "/:id/resolve",
   verifyToken,
+  requireNonDemo,
   validateParams(incidentIdParamsSchema),
   validateSchema(resolveIncidentSchema),
   asyncHandler(resolveIncident),
