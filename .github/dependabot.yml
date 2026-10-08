@@ -16,6 +16,17 @@ updates:
           - "vite"
           - "@vitejs/*"
 
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    groups:
+      frontend:
+        patterns:
+          - "*"
+
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

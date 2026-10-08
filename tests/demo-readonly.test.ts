@@ -46,7 +46,7 @@ describe("Cuenta demo - solo lectura (requireNonDemo)", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toContain("read-only");
+    expect(response.body.error).toContain("not allowed");
   });
 
   it("No debería crear el monitor cuando la cuenta demo recibe 403", async () => {
@@ -69,5 +69,19 @@ describe("Cuenta demo - solo lectura (requireNonDemo)", () => {
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
+  });
+
+  it("Debería rechazar con 403 los endpoints de status/checker para la cuenta demo (sin side effects)", async () => {
+    const token = await loginToken(DEMO_EMAIL, DEMO_PASSWORD);
+
+    const all = await request(app)
+      .get("/api/v1/monitors/status/all")
+      .set("Authorization", `Bearer ${token}`);
+    expect(all.status).toBe(403);
+
+    const site = await request(app)
+      .get("/api/v1/monitors/status/anything-site")
+      .set("Authorization", `Bearer ${token}`);
+    expect(site.status).toBe(403);
   });
 });

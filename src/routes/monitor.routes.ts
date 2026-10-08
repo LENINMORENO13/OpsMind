@@ -154,7 +154,7 @@ router.delete("/:id", verifyToken, requireNonDemo, validateParams(monitorIdSchem
  *      500:
  *        description: Internal server error
  */
-router.get("/status/all", verifyToken, asyncHandler(getStatus));
+router.get("/status/all", verifyToken, requireNonDemo, asyncHandler(getStatus));
 
 // Obtener estado de uno (GET /api/v1/monitors/status/:site)
 /**
@@ -178,7 +178,7 @@ router.get("/status/all", verifyToken, asyncHandler(getStatus));
  *      500:
  *        description: Internal server error
  */
-router.get("/status/:site", verifyToken, asyncHandler(getStatusOne));
+router.get("/status/:site", verifyToken, requireNonDemo, asyncHandler(getStatusOne));
 
 //Obtener los ultimos 10 logs
 /**
