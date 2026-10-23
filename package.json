@@ -37,11 +37,12 @@
     "url": "https://github.com/LENINMORENO13/OpsMind/issues"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.23.4"
   },
   "overrides": {
     "mysql2": "^3.24.5",
-    "deepmerge-ts": "^8.0.2"
+    "deepmerge-ts": "^8.0.2",
+    "ip-address": "^10.7.4"
   },
   "dependencies": {
     "@google/genai": "^2.27.0",
